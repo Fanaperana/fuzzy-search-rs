@@ -1,4 +1,4 @@
-# fzfrs - Fuzzy Search Algorithm Implementation
+# fuzzly - Fuzzy Search Algorithm Implementation
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
@@ -177,7 +177,7 @@ Similarity = 1 - (3 / 7) = 0.571 or 57.1%
 ### Basic Usage
 
 ```rust
-use fzfrs::{FuzzySearcher, MatchResult};
+use fuzzly::{FuzzySearcher, MatchResult};
 
 fn main() {
     // Create a fuzzy searcher with a threshold (0.0 to 1.0)
@@ -208,7 +208,7 @@ applet: 66.7%
 ### Advanced Usage
 
 ```rust
-use fzfrs::{FuzzySearcher, LevenshteinDistance};
+use fuzzly::{FuzzySearcher, LevenshteinDistance};
 
 fn main() {
     // Direct distance calculation
@@ -233,7 +233,7 @@ fn main() {
 ## 🏗️ Project Structure
 
 ```
-fzfrs/
+fuzzly/
 ├── Cargo.toml          # Project configuration
 ├── LICENSE             # MIT License
 ├── README.md           # This file
