@@ -1,12 +1,12 @@
 [package]
-name = "fzfrs"
+name = "fuzzly"
 version = "0.1.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A comprehensive, educational implementation of fuzzy search algorithms using Levenshtein distance"
 license = "MIT"
-repository = "https://github.com/yourusername/fzfrs"
-documentation = "https://github.com/yourusername/fzfrs#readme"
+repository = "https://github.com/Fanaperana/fuzzy-search-rs"
+documentation = "https://github.com/Fanaperana/fuzzy-search-rs#readme"
 readme = "README.md"
 keywords = [
     "fuzzy-search",
@@ -27,9 +27,9 @@ name = "fuzzy_search"
 harness = false
 
 [lib]
-name = "fzfrs"
+name = "fuzzly"
 path = "src/lib.rs"
 
 [[bin]]
-name = "fzfrs"
+name = "fuzzly"
 path = "src/main.rs"

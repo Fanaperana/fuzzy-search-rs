@@ -1,9 +1,9 @@
 //! # Fuzzy Search Example
 //!
-//! This example demonstrates how to use the fzfrs fuzzy search library.
+//! This example demonstrates how to use the fuzzly fuzzy search library.
 //! Run with: `cargo run`
 
-use fzfrs::{FuzzySearcher, LevenshteinDistance, LevenshteinWithOperations};
+use fuzzly::{FuzzySearcher, LevenshteinDistance, LevenshteinWithOperations};
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════╗");

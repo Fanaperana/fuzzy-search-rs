@@ -1,4 +1,4 @@
-//! # fzfrs - Fuzzy Search Algorithm Implementation
+//! # fuzzly - Fuzzy Search Algorithm Implementation
 //!
 //! A comprehensive, educational implementation of fuzzy search algorithms.
 //! This library provides tools for approximate string matching using the
@@ -49,7 +49,7 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use fzfrs::{FuzzySearcher, LevenshteinDistance};
+//! use fuzzly::{FuzzySearcher, LevenshteinDistance};
 //!
 //! // Calculate edit distance between two strings
 //! let distance = LevenshteinDistance::compute("kitten", "sitting");
@@ -115,7 +115,7 @@ use std::fmt;
 /// ## Example
 ///
 /// ```rust
-/// use fzfrs::LevenshteinDistance;
+/// use fuzzly::LevenshteinDistance;
 ///
 /// let distance = LevenshteinDistance::compute("kitten", "sitting");
 /// assert_eq!(distance, 3); // k→s, e→i, insert g
@@ -171,7 +171,7 @@ impl LevenshteinDistance {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::LevenshteinDistance;
+    /// use fuzzly::LevenshteinDistance;
     ///
     /// assert_eq!(LevenshteinDistance::compute("", "abc"), 3);
     /// assert_eq!(LevenshteinDistance::compute("abc", ""), 3);
@@ -318,7 +318,7 @@ impl LevenshteinDistance {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::LevenshteinDistance;
+    /// use fuzzly::LevenshteinDistance;
     ///
     /// // Same result as compute(), but uses less memory
     /// let distance = LevenshteinDistance::compute_optimized("kitten", "sitting");
@@ -407,7 +407,7 @@ impl LevenshteinDistance {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::LevenshteinDistance;
+    /// use fuzzly::LevenshteinDistance;
     ///
     /// assert_eq!(LevenshteinDistance::similarity("abc", "abc"), 1.0);
     /// assert_eq!(LevenshteinDistance::similarity("", ""), 1.0);
@@ -436,7 +436,7 @@ impl LevenshteinDistance {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::LevenshteinDistance;
+    /// use fuzzly::LevenshteinDistance;
     ///
     /// let sim = LevenshteinDistance::similarity_ignore_case("Apple", "APPLE");
     /// assert_eq!(sim, 1.0);
@@ -466,7 +466,7 @@ impl LevenshteinDistance {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::LevenshteinDistance;
+    /// use fuzzly::LevenshteinDistance;
     ///
     /// assert_eq!(LevenshteinDistance::compute_fast("kitten", "sitting"), 3);
     /// assert_eq!(LevenshteinDistance::compute_fast("", "abc"), 3);
@@ -662,7 +662,7 @@ impl LevenshteinWithOperations {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::LevenshteinWithOperations;
+    /// use fuzzly::LevenshteinWithOperations;
     ///
     /// let result = LevenshteinWithOperations::compute("cat", "cart");
     /// println!("{}", result);
@@ -903,7 +903,7 @@ impl FuzzySearcher {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::FuzzySearcher;
+    /// use fuzzly::FuzzySearcher;
     ///
     /// let searcher = FuzzySearcher::new(0.7); // 70% similarity required
     /// ```
@@ -919,7 +919,7 @@ impl FuzzySearcher {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::FuzzySearcher;
+    /// use fuzzly::FuzzySearcher;
     ///
     /// let searcher = FuzzySearcher::new(0.6)
     ///     .case_insensitive(false); // Case-sensitive matching
@@ -934,7 +934,7 @@ impl FuzzySearcher {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::FuzzySearcher;
+    /// use fuzzly::FuzzySearcher;
     ///
     /// let searcher = FuzzySearcher::new(0.6)
     ///     .max_results(10); // Return at most 10 matches
@@ -967,7 +967,7 @@ impl FuzzySearcher {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::FuzzySearcher;
+    /// use fuzzly::FuzzySearcher;
     ///
     /// let searcher = FuzzySearcher::new(0.6);
     /// let candidates = vec!["apple", "application", "banana"];
@@ -1062,7 +1062,7 @@ impl FuzzySearcher {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::FuzzySearcher;
+    /// use fuzzly::FuzzySearcher;
     ///
     /// let searcher = FuzzySearcher::new(0.6);
     /// let candidates = vec!["apple", "banana", "orange"];
@@ -1080,7 +1080,7 @@ impl FuzzySearcher {
     /// ## Example
     ///
     /// ```rust
-    /// use fzfrs::FuzzySearcher;
+    /// use fuzzly::FuzzySearcher;
     ///
     /// let searcher = FuzzySearcher::new(0.7);
     ///

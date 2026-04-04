@@ -14,7 +14,7 @@
 //! HTML reports:  target/criterion/<group>/report/index.html
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use fzfrs::LevenshteinDistance;
+use fuzzly::LevenshteinDistance;
 
 // ── Test inputs ───────────────────────────────────────────────────────────────
 //
