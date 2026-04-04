@@ -1,0 +1,2352 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary SEO ────────────────────────────────────────────────────── -->
+  <title>fuzzly — Learn Fuzzy Search Algorithms with Interactive Visualizations</title>
+  <meta name="description" content="Learn how to implement fuzzy search from scratch — beginner to expert. Hands-on Levenshtein distance visualizer, annotated Rust source code, and real benchmark results. Open source." />
+  <meta name="keywords" content="fuzzy search, levenshtein distance, edit distance, string matching, Rust algorithm, approximate string matching, Wagner-Fischer, dynamic programming, fuzzy matching tutorial, learn algorithms, beginner programming, fuzzly" />
+  <meta name="author" content="Fanaperana" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://fanaperana.github.io/fuzzy-search-rs/" />
+
+  <!-- ── Open Graph (Facebook, LinkedIn, Discord, Slack …) ──────────────── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://fanaperana.github.io/fuzzy-search-rs/" />
+  <meta property="og:title"       content="fuzzly — Learn Fuzzy Search Algorithms" />
+  <meta property="og:description" content="Interactive Levenshtein distance visualizer, side-by-side implementation comparisons, and real benchmarks. Everything you need to understand and implement fuzzy search — beginner friendly." />
+  <meta property="og:image"       content="https://fanaperana.github.io/fuzzy-search-rs/og-image.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"   content="fuzzly — interactive fuzzy search algorithm learning site" />
+  <meta property="og:locale"      content="en_US" />
+  <meta property="og:site_name"   content="fuzzly" />
+
+  <!-- ── Twitter / X Card ──────────────────────────────────────────────── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:site"        content="@Fanaperana" />
+  <meta name="twitter:creator"     content="@Fanaperana" />
+  <meta name="twitter:title"       content="fuzzly — Learn Fuzzy Search Algorithms" />
+  <meta name="twitter:description" content="Interactive visualizer, annotated Rust code, and benchmarks. Understand how fuzzy search works from the ground up." />
+  <meta name="twitter:image"       content="https://fanaperana.github.io/fuzzy-search-rs/og-image.png" />
+  <meta name="twitter:image:alt"   content="fuzzly — interactive fuzzy search site" />
+
+  <!-- ── JSON-LD Structured Data ───────────────────────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "fuzzly",
+    "description": "A comprehensive, educational implementation of fuzzy search algorithms in Rust using Levenshtein distance. Includes interactive visualizations, annotated source code, and benchmark comparisons.",
+    "url": "https://fanaperana.github.io/fuzzy-search-rs/",
+    "codeRepository": "https://github.com/Fanaperana/fuzzy-search-rs",
+    "programmingLanguage": {
+      "@type": "ComputerLanguage",
+      "name": "Rust"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Fanaperana",
+      "url": "https://github.com/Fanaperana"
+    },
+    "license": "https://opensource.org/licenses/MIT",
+    "keywords": "fuzzy search, levenshtein distance, edit distance, string matching, Rust, algorithm, dynamic programming",
+    "dateModified": "2026-04-03",
+    "inLanguage": "en",
+    "isAccessibleForFree": true,
+    "educationalLevel": "beginner",
+    "learningResourceType": "interactive visualization"
+  }
+  </script>
+
+  <!-- ── Favicons ───────────────────────────────────────────────────────── -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+
+  <!-- ── Theme color (browser chrome on mobile) ────────────────────────── -->
+  <meta name="theme-color" content="#080c14" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────── */
+    :root {
+      --bg: #080c14;
+      --bg2: #0d1220;
+      --card: #111827;
+      --card2: #1a2030;
+      --border: rgba(255, 255, 255, 0.07);
+      --border2: rgba(255, 255, 255, 0.14);
+      --accent: #e05a2b;
+      --accent-dim: rgba(224, 90, 43, 0.14);
+      --accent-glow: rgba(224, 90, 43, 0.35);
+      --purple: #8b5cf6;
+      --purple-dim: rgba(139, 92, 246, 0.14);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.18);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245, 158, 11, 0.18);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.18);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.18);
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --radius: 12px;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    code,
+    pre {
+      font-family: var(--mono);
+    }
+
+    img {
+      max-width: 100%;
+    }
+
+    button {
+      font-family: var(--font);
+      cursor: pointer;
+    }
+
+    /* ── Layout helpers ─────────────────────────────────────────────────── */
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    section {
+      padding: 5.5rem 0;
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    h2.section-title {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      color: var(--text2);
+      font-size: 1.0625rem;
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── Nav ────────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: rgba(8, 12, 20, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 0;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    .nav-logo {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .nav-logo .dot {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.75rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text2);
+      transition: color .2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-right {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .btn-nav {
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--text);
+      padding: 0.4rem 0.9rem;
+      border-radius: 7px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      transition: background .2s;
+    }
+
+    .btn-nav:hover {
+      background: var(--card);
+    }
+
+    .btn-nav-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.45rem 1rem;
+      border-radius: 7px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      box-shadow: 0 2px 12px var(--accent-glow);
+      transition: opacity .2s, transform .15s;
+    }
+
+    .btn-nav-primary:hover {
+      opacity: .9;
+      transform: translateY(-1px);
+    }
+
+    /* ── Hero ───────────────────────────────────────────────────────────── */
+    #hero {
+      min-height: calc(100vh - 60px);
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      padding: 4rem 0;
+    }
+
+    #hero::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 65vw;
+      height: 65vw;
+      max-width: 700px;
+      max-height: 700px;
+      background: radial-gradient(circle, rgba(224, 90, 43, .13) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    #hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: -10%;
+      width: 50vw;
+      height: 50vw;
+      max-width: 550px;
+      max-height: 550px;
+      background: radial-gradient(circle, rgba(139, 92, 246, .08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-dim);
+      border: 1px solid rgba(224, 90, 43, .3);
+      color: var(--accent);
+      padding: .35rem .85rem;
+      border-radius: 100px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-badge::before {
+      content: '●';
+      font-size: .55rem;
+    }
+
+    h1.hero-title {
+      font-size: clamp(2.4rem, 5.5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -.025em;
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+
+    h1.hero-title .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 1.05rem;
+      color: var(--text2);
+      margin-bottom: 2rem;
+      max-width: 480px;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: .875rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: .7rem 1.4rem;
+      border-radius: 8px;
+      font-size: .9375rem;
+      font-weight: 600;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transition: transform .15s, box-shadow .15s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border2);
+      padding: .7rem 1.4rem;
+      border-radius: 8px;
+      font-size: .9375rem;
+      font-weight: 500;
+      transition: border-color .2s, background .2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text2);
+      background: rgba(255, 255, 255, .04);
+    }
+
+    /* ── Hero demo widget ───────────────────────────────────────────────── */
+    .hero-demo {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .4);
+    }
+
+    .hero-demo-bar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      background: var(--card2);
+      padding: .75rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-demo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .hero-demo-dot:nth-child(1) {
+      background: #f87171;
+    }
+
+    .hero-demo-dot:nth-child(2) {
+      background: #fbbf24;
+    }
+
+    .hero-demo-dot:nth-child(3) {
+      background: #4ade80;
+    }
+
+    .hero-demo-title {
+      font-size: .8rem;
+      color: var(--text3);
+      margin-left: .5rem;
+      font-family: var(--mono);
+    }
+
+    .hero-demo-body {
+      padding: 1.25rem;
+    }
+
+    .hero-input-wrap {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .hero-input-wrap input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: .65rem 1rem .65rem 2.4rem;
+      color: var(--text);
+      font-size: .9375rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .hero-input-wrap input:focus {
+      border-color: var(--accent);
+    }
+
+    .hero-input-icon {
+      position: absolute;
+      left: .75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    #hero-results {
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .hero-result-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .55rem .85rem;
+      animation: slideIn .2s ease;
+    }
+
+    .hero-result-name {
+      font-size: .875rem;
+      font-weight: 500;
+    }
+
+    .hero-result-right {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .hero-result-score {
+      font-size: .78rem;
+      color: var(--text2);
+      font-family: var(--mono);
+    }
+
+    .hero-result-bar-wrap {
+      width: 64px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .hero-result-bar {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: width .4s;
+    }
+
+    .hero-empty {
+      color: var(--text3);
+      font-size: .85rem;
+      text-align: center;
+      margin: auto;
+    }
+
+    .hero-cursor {
+      display: inline-block;
+      width: 2px;
+      height: .95em;
+      background: var(--accent);
+      margin-left: 1px;
+      animation: blink .9s step-end infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* ── What is Fuzzy Search ─────────────────────────────────────────── */
+    #what {
+      background: var(--bg);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    .explainer-blocks {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .explainer-block {
+      display: flex;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .explainer-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+
+    .explainer-block h4 {
+      font-size: .9375rem;
+      font-weight: 600;
+      margin-bottom: .25rem;
+    }
+
+    .explainer-block p {
+      font-size: .875rem;
+      color: var(--text2);
+    }
+
+    /* Live search demo */
+    .live-search-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .live-search-head {
+      padding: .9rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .8125rem;
+      font-weight: 600;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .live-search-body {
+      padding: 1.25rem;
+    }
+
+    .search-input-row {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .search-input-row input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: .65rem 1rem .65rem 2.5rem;
+      color: var(--text);
+      font-size: .9375rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .search-input-row input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-input-row .si {
+      position: absolute;
+      left: .75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+    }
+
+    .live-results {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+      min-height: 200px;
+    }
+
+    .live-result {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .55rem .85rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: border-color .2s;
+    }
+
+    .live-result:hover {
+      border-color: var(--border2);
+      background: var(--card2);
+    }
+
+    .live-result-name {
+      font-size: .875rem;
+    }
+
+    .live-result-meta {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .live-score-pill {
+      font-size: .75rem;
+      font-weight: 600;
+      font-family: var(--mono);
+      padding: .2rem .5rem;
+      border-radius: 100px;
+    }
+
+    .score-excellent {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .score-good {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .score-fair {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .live-bar-wrap {
+      width: 52px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .live-bar {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .placeholder-hint {
+      color: var(--text3);
+      font-size: .84rem;
+      text-align: center;
+      padding: 2rem 0;
+    }
+
+    /* ── Algorithm / DP Visualizer ───────────────────────────────────── */
+    #algorithm {
+      background: var(--bg2);
+    }
+
+    .algo-intro {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .op-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+
+    .op-card h4 {
+      font-size: .875rem;
+      font-weight: 600;
+      margin-bottom: .5rem;
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+    }
+
+    .op-badge {
+      font-size: .7rem;
+      padding: .15rem .5rem;
+      border-radius: 100px;
+      font-weight: 700;
+    }
+
+    .op-badge.ins {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .op-badge.del {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .op-badge.sub {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .op-badge.mat {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .op-card p {
+      font-size: .84rem;
+      color: var(--text2);
+    }
+
+    .op-example {
+      font-family: var(--mono);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .4rem .75rem;
+      font-size: .82rem;
+      margin-top: .6rem;
+      display: inline-block;
+    }
+
+    /* Matrix visualizer */
+    .visualizer-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+
+    .viz-controls {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .viz-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .viz-input-group label {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text2);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .viz-input-group input {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: .55rem .9rem;
+      color: var(--text);
+      font-size: .9375rem;
+      font-family: var(--mono);
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .viz-input-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .viz-btn-group {
+      display: flex;
+      gap: .5rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn-viz {
+      border: 1px solid var(--border2);
+      background: var(--card2);
+      color: var(--text);
+      padding: .55rem 1.1rem;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 500;
+      transition: background .2s, border-color .2s;
+    }
+
+    .btn-viz:hover {
+      background: var(--bg2);
+      border-color: var(--text3);
+    }
+
+    .btn-viz-run {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: .55rem 1.25rem;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 600;
+      box-shadow: 0 2px 12px var(--accent-glow);
+      transition: opacity .2s;
+    }
+
+    .btn-viz-run:hover {
+      opacity: .88;
+    }
+
+    #matrix-container {
+      overflow-x: auto;
+      padding-bottom: .5rem;
+    }
+
+    .dp-matrix {
+      display: inline-grid;
+      gap: 3px;
+      border-radius: 8px;
+    }
+
+    .dp-cell {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      font-family: var(--mono);
+      font-size: .8125rem;
+      font-weight: 500;
+      transition: background .3s, color .3s, box-shadow .3s;
+      position: relative;
+    }
+
+    .dp-header {
+      background: var(--card2);
+      color: var(--text2);
+      font-weight: 700;
+    }
+
+    .dp-base {
+      background: rgba(255, 255, 255, .05);
+      color: var(--text2);
+    }
+
+    .dp-match {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .dp-substitute {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .dp-insert {
+      background: var(--blue-dim);
+      color: var(--blue);
+    }
+
+    .dp-delete {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .dp-path {
+      box-shadow: inset 0 0 0 2px currentColor, 0 0 10px currentColor;
+    }
+
+    .dp-current {
+      box-shadow: 0 0 0 2px var(--accent), 0 0 16px var(--accent-glow) !important;
+      z-index: 1;
+    }
+
+    .dp-cell.hidden {
+      opacity: 0;
+    }
+
+    .matrix-legend {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .78rem;
+      color: var(--text2);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    #matrix-result {
+      margin-top: 1.25rem;
+      padding: 1rem 1.25rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: .875rem;
+      display: none;
+    }
+
+    #matrix-result span {
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .viz-speed-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-top: .75rem;
+    }
+
+    .viz-speed-row label {
+      font-size: .8rem;
+      color: var(--text2);
+    }
+
+    #speed-slider {
+      accent-color: var(--accent);
+    }
+
+    /* ── Implementations ─────────────────────────────────────────────── */
+    #implementations {
+      background: var(--bg);
+    }
+
+    .impl-tabs {
+      display: flex;
+      gap: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border2);
+      margin-bottom: 0;
+    }
+
+    .impl-tab {
+      flex: 1;
+      padding: .65rem;
+      font-size: .84rem;
+      font-weight: 600;
+      background: var(--card2);
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      transition: background .2s, color .2s;
+      border-right: 1px solid var(--border);
+    }
+
+    .impl-tab:last-child {
+      border-right: none;
+    }
+
+    .impl-tab.active {
+      background: var(--card);
+      color: var(--text);
+    }
+
+    .impl-panel {
+      display: none;
+      border: 1px solid var(--border2);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      overflow: hidden;
+    }
+
+    .impl-panel.active {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .impl-info {
+      padding: 1.75rem;
+    }
+
+    .impl-info h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+
+    .impl-complexity {
+      display: flex;
+      gap: 1rem;
+      margin: .75rem 0 1rem;
+    }
+
+    .complexity-badge {
+      font-size: .75rem;
+      font-family: var(--mono);
+      font-weight: 600;
+      padding: .25rem .65rem;
+      border-radius: 6px;
+      border: 1px solid;
+    }
+
+    .c-time {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: rgba(224, 90, 43, .3);
+    }
+
+    .c-space {
+      background: var(--purple-dim);
+      color: var(--purple);
+      border-color: rgba(139, 92, 246, .3);
+    }
+
+    .impl-pros {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      margin-top: .75rem;
+    }
+
+    .impl-pros li {
+      font-size: .875rem;
+      color: var(--text2);
+      display: flex;
+      gap: .5rem;
+      align-items: flex-start;
+    }
+
+    .impl-pros li::before {
+      content: '→';
+      color: var(--accent);
+      font-size: .8rem;
+      margin-top: .15rem;
+      flex-shrink: 0;
+    }
+
+    .impl-code {
+      background: #0d1117;
+      border-left: 1px solid var(--border);
+      overflow: auto;
+    }
+
+    .impl-code pre {
+      padding: 1.5rem;
+      font-size: .8rem;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    /* simple highlight colors without Prism */
+    .kw {
+      color: #c792ea;
+    }
+
+    .fn {
+      color: #82aaff;
+    }
+
+    .ty {
+      color: #4ec9b0;
+    }
+
+    .cm {
+      color: #546e7a;
+      font-style: italic;
+    }
+
+    .nu {
+      color: #f78c6c;
+    }
+
+    .st {
+      color: #c3e88d;
+    }
+
+    .op {
+      color: #89ddff;
+    }
+
+    /* ── Benchmarks ──────────────────────────────────────────────────── */
+    #benchmarks {
+      background: var(--bg2);
+    }
+
+    .bench-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border2);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    thead {
+      background: var(--card2);
+    }
+
+    th {
+      padding: .875rem 1.25rem;
+      text-align: left;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text2);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border2);
+    }
+
+    td {
+      padding: .875rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover td {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .td-tier {
+      font-weight: 600;
+      font-size: .9rem;
+    }
+
+    .td-len {
+      color: var(--text3);
+      font-size: .8rem;
+      font-family: var(--mono);
+    }
+
+    .td-time {
+      font-family: var(--mono);
+      font-size: .875rem;
+    }
+
+    .td-winner {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .td-speedup {
+      font-size: .78rem;
+      font-weight: 700;
+      padding: .2rem .6rem;
+      border-radius: 100px;
+      background: var(--green-dim);
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .bench-notes {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .bench-note {
+      display: flex;
+      gap: .5rem;
+      align-items: flex-start;
+      font-size: .84rem;
+      color: var(--text2);
+    }
+
+    .bench-note-icon {
+      font-size: .9rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Get Started ─────────────────────────────────────────────────── */
+    #quickstart {
+      background: var(--bg);
+    }
+
+    .qs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .code-card {
+      background: #0d1117;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .code-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .7rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--card2);
+    }
+
+    .code-card-head span {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text2);
+      font-family: var(--mono);
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text2);
+      padding: .25rem .6rem;
+      border-radius: 5px;
+      font-size: .72rem;
+      font-weight: 500;
+      transition: color .2s, border-color .2s;
+    }
+
+    .copy-btn:hover {
+      color: var(--text);
+      border-color: var(--text3);
+    }
+
+    .code-card pre {
+      padding: 1.25rem;
+      font-size: .825rem;
+      line-height: 1.75;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 0;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .footer-logo .dot {
+      color: var(--accent);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      font-size: .84rem;
+      color: var(--text2);
+      transition: color .2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    .footer-right {
+      font-size: .8rem;
+      color: var(--text3);
+    }
+
+    /* ── Scroll reveal ───────────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+
+    .reveal.in-view {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media(max-width: 900px) {
+
+      .hero-grid,
+      .two-col,
+      .algo-intro {
+        grid-template-columns: 1fr;
+      }
+
+      .algo-intro {
+        gap: 1rem;
+      }
+
+      .impl-panel.active {
+        grid-template-columns: 1fr;
+      }
+
+      .qs-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media(max-width: 600px) {
+      section {
+        padding: 3.5rem 0;
+      }
+
+      .bench-notes {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────── -->
+  <nav>
+    <div class="wrap nav-inner">
+      <a href="#" class="nav-logo">🔍 <span>fuzz</span><span class="dot">ly</span></a>
+      <ul class="nav-links">
+        <li><a href="#what">Learn</a></li>
+        <li><a href="#algorithm">Algorithm</a></li>
+        <li><a href="#implementations">Code</a></li>
+        <li><a href="#benchmarks">Benchmarks</a></li>
+        <li><a href="#quickstart">Get Started</a></li>
+      </ul>
+      <div class="nav-right">
+        <a href="https://github.com/Fanaperana/fuzzy-search-rs" class="btn-nav" target="_blank">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+  <section id="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-left">
+          <div class="hero-badge">Educational Open Source · Rust</div>
+          <h1 class="hero-title">Fuzzy Search,<br><span class="grad">Built to Learn From</span></h1>
+          <p class="hero-desc">
+            A heavily annotated Rust implementation of fuzzy search. Understand every line —
+            the Levenshtein algorithm, the optimisations, and the intuition behind each.
+            Beginner friendly.
+          </p>
+          <div class="hero-btns">
+            <a href="#algorithm" class="btn-primary">Try the Visualizer →</a>
+            <a href="https://github.com/Fanaperana/fuzzy-search-rs" class="btn-secondary" target="_blank">View on GitHub</a>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <div class="hero-demo">
+            <div class="hero-demo-bar">
+              <span class="hero-demo-dot"></span>
+              <span class="hero-demo-dot"></span>
+              <span class="hero-demo-dot"></span>
+              <span class="hero-demo-title">fuzzly — live demo</span>
+            </div>
+            <div class="hero-demo-body">
+              <div class="hero-input-wrap">
+                <span class="hero-input-icon">🔍</span>
+                <input id="hero-input" type="text" placeholder="Type to search…" readonly />
+              </div>
+              <div id="hero-results">
+                <span class="hero-empty">Searching…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── What is Fuzzy Search ──────────────────────────────────────────── -->
+  <section id="what">
+    <div class="wrap">
+      <div class="two-col">
+        <div class="reveal">
+          <span class="section-label">The Basics</span>
+          <h2 class="section-title">What is Fuzzy Search?</h2>
+          <p class="section-sub">
+            Normal search requires an exact match. Fuzzy search finds results even when the
+            input has typos, missing letters, or small differences.
+          </p>
+
+          <div class="explainer-blocks">
+            <div class="explainer-block">
+              <span class="explainer-icon">📏</span>
+              <div>
+                <h4>Edit Distance</h4>
+                <p>The core idea: count the minimum number of single-character changes
+                  (insert, delete, substitute) to transform one string into another.
+                  Fewer changes = better match.</p>
+              </div>
+            </div>
+            <div class="explainer-block">
+              <span class="explainer-icon">📊</span>
+              <div>
+                <h4>Similarity Score</h4>
+                <p>We turn the raw distance into a 0–100% score. Identical strings
+                  score 100%. Completely different strings score 0%. A threshold
+                  (e.g. 60%) filters out poor matches.</p>
+              </div>
+            </div>
+            <div class="explainer-block">
+              <span class="explainer-icon">🗂️</span>
+              <div>
+                <h4>Ranking Results</h4>
+                <p>Multiple candidates often meet the threshold. We sort by score
+                  (best first) so the most relevant result always appears at the top.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal">
+          <div class="live-search-card">
+            <div class="live-search-head">
+              <span>⚡</span> Live Demo — type anything
+            </div>
+            <div class="live-search-body">
+              <div class="search-input-row">
+                <span class="si">🔍</span>
+                <input id="live-input" type="text" placeholder="Try: " algorythm", "srach" , "lveshtein" …" />
+              </div>
+              <div id="live-results">
+                <p class="placeholder-hint">Start typing to see fuzzy matches in real time</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Algorithm ─────────────────────────────────────────────────────── -->
+  <section id="algorithm">
+    <div class="wrap">
+      <span class="section-label">Deep Dive</span>
+      <h2 class="section-title reveal">The Levenshtein Distance Algorithm</h2>
+      <p class="section-sub reveal">
+        Every fuzzy search is built on this single idea: how many single-character edits separate two strings?
+        Here are the three allowed operations.
+      </p>
+
+      <div class="algo-intro reveal">
+        <div class="op-card">
+          <h4><span class="op-badge ins">Insert</span> Add a missing character</h4>
+          <p>Turn <code>cat</code> → <code>cart</code> by inserting <code>r</code>. Cost: 1.</p>
+          <code class="op-example">cat → c<mark style="background:var(--blue-dim);color:var(--blue)">r</mark>at → cart</code>
+        </div>
+        <div class="op-card">
+          <h4><span class="op-badge del">Delete</span> Remove an extra character</h4>
+          <p>Turn <code>cart</code> → <code>cat</code> by deleting <code>r</code>. Cost: 1.</p>
+          <code class="op-example">ca<mark style="background:var(--red-dim);color:var(--red)">r</mark>t → cat</code>
+        </div>
+        <div class="op-card">
+          <h4><span class="op-badge sub">Substitute</span> Replace a wrong character</h4>
+          <p>Turn <code>cat</code> → <code>bat</code> by replacing <code>c</code> → <code>b</code>. Cost: 1.</p>
+          <code class="op-example"><mark style="background:var(--amber-dim);color:var(--amber)">c</mark>at → bat</code>
+        </div>
+        <div class="op-card">
+          <h4><span class="op-badge mat">Match</span> Characters are the same</h4>
+          <p>When two characters at the same position match, no edit is needed. Cost: 0.</p>
+          <code class="op-example">ca<mark style="background:var(--green-dim);color:var(--green)">t</mark> ↔ ba<mark style="background:var(--green-dim);color:var(--green)">t</mark></code>
+        </div>
+      </div>
+
+      <div class="visualizer-card reveal">
+        <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.5rem;">
+          🧮 Interactive DP Matrix Visualizer
+          <span style="font-size:.78rem;font-weight:400;color:var(--text2);margin-left:.75rem;">
+            Each cell shows the edit distance for the prefixes up to that point
+          </span>
+        </h3>
+
+        <div class="viz-controls">
+          <div class="viz-input-group">
+            <label>Source</label>
+            <input id="viz-source" type="text" value="kitten" maxlength="20" placeholder="Source word" />
+          </div>
+          <div class="viz-input-group">
+            <label>Target</label>
+            <input id="viz-target" type="text" value="sitting" maxlength="20" placeholder="Target word" />
+          </div>
+          <div class="viz-btn-group">
+            <button class="btn-viz-run" onclick="runVisualizer()">Visualize</button>
+            <button class="btn-viz" onclick="animateVisualizer()">▶ Animate</button>
+            <button class="btn-viz" onclick="resetVisualizer()">Reset</button>
+          </div>
+        </div>
+
+        <div class="viz-speed-row">
+          <label for="speed-slider">Animation speed:</label>
+          <input type="range" id="speed-slider" min="30" max="300" value="80" step="10" style="width:120px" />
+          <span id="speed-label" style="font-size:.78rem;color:var(--text2)">fast</span>
+        </div>
+
+        <div id="matrix-container" style="margin-top:1.5rem;">
+          <p style="color:var(--text3);font-size:.875rem;">
+            Click <strong>Visualize</strong> to build the matrix, or <strong>Animate</strong> to watch it fill in step by step.
+          </p>
+        </div>
+
+        <div id="matrix-result"></div>
+
+        <div class="matrix-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:rgba(255,255,255,.1)"></span>Base case</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--green-dim);border:1px solid var(--green)"></span>Match (cost 0)</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--amber-dim);border:1px solid var(--amber)"></span>Substitute (cost 1)</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--blue-dim);border:1px solid var(--blue)"></span>Insert</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--red-dim);border:1px solid var(--red)"></span>Delete</span>
+          <span class="legend-item"><span class="legend-dot" style="background:transparent;border:2px solid var(--accent)"></span>Optimal path</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Implementations ───────────────────────────────────────────────── -->
+  <section id="implementations">
+    <div class="wrap">
+      <span class="section-label">The Code</span>
+      <h2 class="section-title reveal">Three Ways to Implement It</h2>
+      <p class="section-sub reveal">
+        Each variant produces identical results. They trade memory and performance for readability.
+        Start with <code>compute</code>, understand it fully, then read the optimised versions.
+      </p>
+
+      <div class="reveal">
+        <div class="impl-tabs">
+          <button class="impl-tab active" onclick="showTab('compute')">1. compute ⭢ learn here</button>
+          <button class="impl-tab" onclick="showTab('optimized')">2. compute_optimized</button>
+          <button class="impl-tab" onclick="showTab('fast')">3. compute_fast ⚡</button>
+        </div>
+
+        <!-- compute -->
+        <div class="impl-panel active" id="tab-compute">
+          <div class="impl-info">
+            <h3>compute — The Full Matrix</h3>
+            <p style="font-size:.875rem;color:var(--text2);margin-bottom:.75rem;">
+              The classic Wagner-Fischer algorithm. Builds a complete (m+1)×(n+1) grid where
+              every cell represents the edit distance for a pair of prefixes.
+              Start here — every cell, every loop, every step is annotated in the source.
+            </p>
+            <div class="impl-complexity">
+              <span class="complexity-badge c-time">Time: O(m·n)</span>
+              <span class="complexity-badge c-space">Space: O(m·n)</span>
+            </div>
+            <ul class="impl-pros">
+              <li>Easiest to understand and trace through by hand</li>
+              <li>Full matrix preserved — supports backtracking to get the edit path</li>
+              <li>Great for learning: you can print the matrix and follow along</li>
+              <li>Used by <code>LevenshteinWithOperations</code> to show which edits were applied</li>
+            </ul>
+          </div>
+          <div class="impl-code">
+            <pre><span class="kw">pub fn</span> <span class="fn">compute</span>(source: &amp;<span class="ty">str</span>, target: &amp;<span class="ty">str</span>) -&gt; <span class="ty">usize</span> {
+    <span class="kw">let</span> src: <span class="ty">Vec</span>&lt;<span class="ty">char</span>&gt; = source.<span class="fn">chars</span>().<span class="fn">collect</span>();
+    <span class="kw">let</span> tgt: <span class="ty">Vec</span>&lt;<span class="ty">char</span>&gt; = target.<span class="fn">chars</span>().<span class="fn">collect</span>();
+    <span class="kw">let</span> (m, n) = (src.<span class="fn">len</span>(), tgt.<span class="fn">len</span>());
+
+    <span class="cm">// Edge cases</span>
+    <span class="kw">if</span> m == <span class="nu">0</span> { <span class="kw">return</span> n; }
+    <span class="kw">if</span> n == <span class="nu">0</span> { <span class="kw">return</span> m; }
+
+    <span class="cm">// Full (m+1)×(n+1) matrix</span>
+    <span class="kw">let mut</span> matrix = <span class="fn">vec!</span>[<span class="fn">vec!</span>[<span class="nu">0usize</span>; n+<span class="nu">1</span>]; m+<span class="nu">1</span>];
+
+    <span class="cm">// Base cases: empty prefix conversions</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="nu">0</span>..=m { matrix[i][<span class="nu">0</span>] = i; }
+    <span class="kw">for</span> j <span class="kw">in</span> <span class="nu">0</span>..=n { matrix[<span class="nu">0</span>][j] = j; }
+
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="nu">1</span>..=m {
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="nu">1</span>..=n {
+            <span class="cm">// 0 if chars match, 1 if they differ</span>
+            <span class="kw">let</span> cost = <span class="kw">if</span> src[i-<span class="nu">1</span>] == tgt[j-<span class="nu">1</span>] { <span class="nu">0</span> } <span class="kw">else</span> { <span class="nu">1</span> };
+
+            matrix[i][j] = <span class="fn">min</span>(
+                matrix[i-<span class="nu">1</span>][j]   + <span class="nu">1</span>,     <span class="cm">// deletion</span>
+                <span class="fn">min</span>(
+                matrix[i][j-<span class="nu">1</span>]   + <span class="nu">1</span>,     <span class="cm">// insertion</span>
+                matrix[i-<span class="nu">1</span>][j-<span class="nu">1</span>] + cost,  <span class="cm">// substitution</span>
+                )
+            );
+        }
+    }
+    matrix[m][n]
+}</pre>
+          </div>
+        </div>
+
+        <!-- compute_optimized -->
+        <div class="impl-panel" id="tab-optimized">
+          <div class="impl-info">
+            <h3>compute_optimized — Two-Row Buffer</h3>
+            <p style="font-size:.875rem;color:var(--text2);margin-bottom:.75rem;">
+              Key insight: each cell only reads from the row directly above.
+              Once row <em>i</em> is complete we never need rows 0..i−1 again.
+              So we keep just two rows and swap them each iteration.
+            </p>
+            <div class="impl-complexity">
+              <span class="complexity-badge c-time">Time: O(m·n)</span>
+              <span class="complexity-badge c-space">Space: O(min(m,n))</span>
+            </div>
+            <ul class="impl-pros">
+              <li>Uses O(min(m,n)) memory instead of O(m·n) — great for long strings</li>
+              <li>Puts the shorter string in the column dimension for smallest rows</li>
+              <li><code>std::mem::swap</code> is free — just pointer swap, no copy</li>
+              <li>Same <code>usize</code> cell size as <code>compute</code></li>
+            </ul>
+          </div>
+          <div class="impl-code">
+            <pre><span class="kw">pub fn</span> <span class="fn">compute_optimized</span>(source: &amp;<span class="ty">str</span>, target: &amp;<span class="ty">str</span>) -&gt; <span class="ty">usize</span> {
+    <span class="kw">let mut</span> src: <span class="ty">Vec</span>&lt;<span class="ty">char</span>&gt; = source.<span class="fn">chars</span>().<span class="fn">collect</span>();
+    <span class="kw">let mut</span> tgt: <span class="ty">Vec</span>&lt;<span class="ty">char</span>&gt; = target.<span class="fn">chars</span>().<span class="fn">collect</span>();
+    <span class="kw">let</span> (m, n) = (src.<span class="fn">len</span>(), tgt.<span class="fn">len</span>());
+    <span class="kw">if</span> m == <span class="nu">0</span> { <span class="kw">return</span> n; }
+    <span class="kw">if</span> n == <span class="nu">0</span> { <span class="kw">return</span> m; }
+
+    <span class="cm">// Put shorter string in column dim → smaller row allocation</span>
+    <span class="kw">let</span> (src, tgt, m, n) = <span class="kw">if</span> m &lt; n {
+        (tgt, src, n, m)
+    } <span class="kw">else</span> {
+        (src, tgt, m, n)
+    };
+
+    <span class="kw">let mut</span> prev: <span class="ty">Vec</span>&lt;<span class="ty">usize</span>&gt; = (<span class="nu">0</span>..=n).<span class="fn">collect</span>();
+    <span class="kw">let mut</span> curr: <span class="ty">Vec</span>&lt;<span class="ty">usize</span>&gt; = <span class="fn">vec!</span>[<span class="nu">0</span>; n+<span class="nu">1</span>];
+
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="nu">1</span>..=m {
+        curr[<span class="nu">0</span>] = i;
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="nu">1</span>..=n {
+            <span class="kw">let</span> cost = <span class="ty">usize</span>::<span class="fn">from</span>(src[i-<span class="nu">1</span>] != tgt[j-<span class="nu">1</span>]);
+            curr[j] = <span class="fn">min</span>(curr[j-<span class="nu">1</span>]+<span class="nu">1</span>,
+                       <span class="fn">min</span>(prev[j]+<span class="nu">1</span>, prev[j-<span class="nu">1</span>]+cost));
+        }
+        <span class="cm">// Swap — O(1), just pointer exchange</span>
+        std::mem::<span class="fn">swap</span>(&amp;<span class="kw">mut</span> prev, &amp;<span class="kw">mut</span> curr);
+    }
+    prev[n]
+}</pre>
+          </div>
+        </div>
+
+        <!-- compute_fast -->
+        <div class="impl-panel" id="tab-fast">
+          <div class="impl-info">
+            <h3>compute_fast — Production Path</h3>
+            <p style="font-size:.875rem;color:var(--text2);margin-bottom:.75rem;">
+              Two optimisations stack on top of <code>compute_optimized</code>:
+              ASCII strings skip the <code>Vec&lt;char&gt;</code> allocation entirely,
+              and cells shrink from 8-byte <code>usize</code> to 4-byte <code>u32</code>,
+              doubling cache density. Used internally by <code>similarity()</code>.
+            </p>
+            <div class="impl-complexity">
+              <span class="complexity-badge c-time">Time: O(m·n)</span>
+              <span class="complexity-badge c-space">Space: O(min(m,n))</span>
+            </div>
+            <ul class="impl-pros">
+              <li><strong>ASCII fast path</strong>: <code>as_bytes()</code> — no heap alloc for <code>Vec&lt;char&gt;</code></li>
+              <li><strong><code>u32</code> cells</strong>: 4 bytes vs 8 = 2× cache density on 64-bit</li>
+              <li>Automatically falls back to char slices for Unicode</li>
+              <li>Read this <em>last</em> — the optimisations only make sense once you know what's being optimised</li>
+            </ul>
+          </div>
+          <div class="impl-code">
+            <pre><span class="kw">pub fn</span> <span class="fn">compute_fast</span>(source: &amp;<span class="ty">str</span>, target: &amp;<span class="ty">str</span>) -&gt; <span class="ty">usize</span> {
+    <span class="cm">// ASCII: every char = 1 byte, skip Vec&lt;char&gt; allocation</span>
+    <span class="kw">if</span> source.<span class="fn">is_ascii</span>() &amp;&amp; target.<span class="fn">is_ascii</span>() {
+        <span class="kw">return</span> <span class="fn">fast_bytes</span>(source.<span class="fn">as_bytes</span>(), target.<span class="fn">as_bytes</span>());
+    }
+    <span class="kw">let</span> src: <span class="ty">Vec</span>&lt;<span class="ty">char</span>&gt; = source.<span class="fn">chars</span>().<span class="fn">collect</span>();
+    <span class="kw">let</span> tgt: <span class="ty">Vec</span>&lt;<span class="ty">char</span>&gt; = target.<span class="fn">chars</span>().<span class="fn">collect</span>();
+    <span class="fn">fast_chars</span>(&amp;src, &amp;tgt)
+}
+
+<span class="kw">fn</span> <span class="fn">fast_bytes</span>(src: &amp;[<span class="ty">u8</span>], tgt: &amp;[<span class="ty">u8</span>]) -&gt; <span class="ty">usize</span> {
+    <span class="kw">let</span> (m, n) = (src.<span class="fn">len</span>(), tgt.<span class="fn">len</span>());
+    <span class="kw">let</span> (src, tgt, m, n) = <span class="kw">if</span> m &lt; n { (tgt,src,n,m) } <span class="kw">else</span> { (src,tgt,m,n) };
+
+    <span class="cm">// u32 cells — 4 bytes each, 2× cache density vs usize</span>
+    <span class="kw">let mut</span> prev: <span class="ty">Vec</span>&lt;<span class="ty">u32</span>&gt; = (<span class="nu">0</span>..=n <span class="kw">as</span> <span class="ty">u32</span>).<span class="fn">collect</span>();
+    <span class="kw">let mut</span> curr: <span class="ty">Vec</span>&lt;<span class="ty">u32</span>&gt; = <span class="fn">vec!</span>[<span class="nu">0u32</span>; n+<span class="nu">1</span>];
+
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="nu">1</span>..=m {
+        curr[<span class="nu">0</span>] = i <span class="kw">as</span> <span class="ty">u32</span>;
+        <span class="kw">let</span> s = src[i-<span class="nu">1</span>];
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="nu">1</span>..=n {
+            <span class="kw">let</span> cost = <span class="ty">u32</span>::<span class="fn">from</span>(s != tgt[j-<span class="nu">1</span>]);
+            curr[j] = (curr[j-<span class="nu">1</span>]+<span class="nu">1</span>)
+                .<span class="fn">min</span>(prev[j]+<span class="nu">1</span>)
+                .<span class="fn">min</span>(prev[j-<span class="nu">1</span>]+cost);
+        }
+        std::mem::<span class="fn">swap</span>(&amp;<span class="kw">mut</span> prev, &amp;<span class="kw">mut</span> curr);
+    }
+    prev[n] <span class="kw">as</span> <span class="ty">usize</span>
+}</pre>
+          </div>
+        </div>
+      </div><!-- end reveal -->
+    </div>
+  </section>
+
+  <!-- ── Benchmarks ─────────────────────────────────────────────────────── -->
+  <section id="benchmarks">
+    <div class="wrap">
+      <span class="section-label">Performance</span>
+      <h2 class="section-title reveal">Benchmark Results</h2>
+      <p class="section-sub reveal">
+        All three implementations run head-to-head on five stress tiers.
+        Measured with <a href="https://github.com/bheisler/criterion.rs" target="_blank">Criterion.rs</a>
+        (100 samples, release build, x86-64 Linux). Reproduce: <code>cargo bench</code>
+      </p>
+
+      <div class="bench-table-wrap reveal">
+        <table>
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>String lengths</th>
+              <th>compute</th>
+              <th>compute_optimized</th>
+              <th>compute_fast</th>
+              <th>Speedup (fast vs compute)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-tier">tiny</td>
+              <td class="td-len">6 vs 7 chars</td>
+              <td class="td-time">445 ns</td>
+              <td class="td-time">330 ns</td>
+              <td class="td-time td-winner">184 ns</td>
+              <td><span class="td-speedup">2.4× faster</span></td>
+            </tr>
+            <tr>
+              <td class="td-tier">short</td>
+              <td class="td-len">22 vs 24 chars</td>
+              <td class="td-time">2,772 ns</td>
+              <td class="td-time">1,374 ns</td>
+              <td class="td-time td-winner">1,206 ns</td>
+              <td><span class="td-speedup">2.3× faster</span></td>
+            </tr>
+            <tr>
+              <td class="td-tier">medium</td>
+              <td class="td-len">66 vs 68 chars</td>
+              <td class="td-time">14,755 ns</td>
+              <td class="td-time">10,297 ns</td>
+              <td class="td-time td-winner">10,602 ns</td>
+              <td><span class="td-speedup">1.4× faster</span></td>
+            </tr>
+            <tr>
+              <td class="td-tier">long</td>
+              <td class="td-len">182 vs 191 chars</td>
+              <td class="td-time">104,210 ns</td>
+              <td class="td-time">112,580 ns</td>
+              <td class="td-time td-winner">87,915 ns</td>
+              <td><span class="td-speedup">1.2× faster</span></td>
+            </tr>
+            <tr>
+              <td class="td-tier">stress</td>
+              <td class="td-len">270 vs 268 chars</td>
+              <td class="td-time">119,920 ns</td>
+              <td class="td-time td-winner">82,453 ns</td>
+              <td class="td-time">95,073 ns</td>
+              <td><span class="td-speedup">1.3× faster</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bench-notes reveal">
+        <div class="bench-note"><span class="bench-note-icon">💡</span>
+          <span><strong>tiny tier:</strong> call overhead dominates. <code>compute_fast</code> wins by skipping the <code>Vec&lt;char&gt;</code> allocation entirely.</span>
+        </div>
+        <div class="bench-note"><span class="bench-note-icon">💡</span>
+          <span><strong>stress tier:</strong> <code>compute_optimized</code> edges ahead because the full matrix in <code>compute</code> exceeds L2 cache, while the rolling two rows stay warm.</span>
+        </div>
+        <div class="bench-note"><span class="bench-note-icon">📈</span>
+          <span>HTML reports with per-sample charts: <code>target/criterion/levenshtein/report/index.html</code> after running <code>cargo bench</code>.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Get Started ───────────────────────────────────────────────────── -->
+  <section id="quickstart">
+    <div class="wrap">
+      <span class="section-label">Get Started</span>
+      <h2 class="section-title reveal">Use fuzzly in Your Project</h2>
+      <p class="section-sub reveal">Clone the repo to read the annotated source, or add it as a library dependency.</p>
+
+      <div class="qs-grid reveal">
+        <div class="code-card">
+          <div class="code-card-head">
+            <span>Cargo.toml</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><span class="cm"># Add to your Cargo.toml</span>
+[dependencies]
+fuzzly = { git = <span class="st">"https://github.com/Fanaperana/fuzzy-search-rs"</span> }</pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-card-head">
+            <span>main.rs — basic usage</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><span class="kw">use</span> fuzzly::{<span class="ty">FuzzySearcher</span>, <span class="ty">LevenshteinDistance</span>};
+
+<span class="kw">fn</span> <span class="fn">main</span>() {
+    <span class="cm">// Raw edit distance</span>
+    <span class="kw">let</span> d = <span class="ty">LevenshteinDistance</span>::<span class="fn">compute</span>(<span class="st">"kitten"</span>, <span class="st">"sitting"</span>);
+    println!(<span class="st">"distance: {d}"</span>); <span class="cm">// 3</span>
+
+    <span class="cm">// Similarity score (0.0 – 1.0)</span>
+    <span class="kw">let</span> sim = <span class="ty">LevenshteinDistance</span>::<span class="fn">similarity</span>(<span class="st">"apple"</span>, <span class="st">"aple"</span>);
+    println!(<span class="st">"{:.0}% similar"</span>, sim * <span class="nu">100.0</span>); <span class="cm">// 80%</span>
+
+    <span class="cm">// Fuzzy search with threshold</span>
+    <span class="kw">let</span> searcher = <span class="ty">FuzzySearcher</span>::<span class="fn">new</span>(<span class="nu">0.6</span>);
+    <span class="kw">let</span> candidates = <span class="fn">vec!</span>[<span class="st">"apple"</span>, <span class="st">"application"</span>, <span class="st">"banana"</span>];
+    <span class="kw">let</span> results = searcher.<span class="fn">search</span>(<span class="st">"aple"</span>, &amp;candidates);
+
+    <span class="kw">for</span> r <span class="kw">in</span> results {
+        println!(<span class="st">"{}: {:.0}%"</span>, r.text, r.score * <span class="nu">100.0</span>);
+    }
+    <span class="cm">// apple: 80%   application: 67%</span>
+}</pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-card-head">
+            <span>Clone &amp; explore</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre>git clone https://github.com/Fanaperana/fuzzy-search-rs
+cd fuzzy-search-rs
+
+cargo run           <span class="cm"># interactive demo</span>
+cargo test          <span class="cm"># run all tests</span>
+cargo bench         <span class="cm"># run benchmarks</span>
+cargo doc --open    <span class="cm"># open annotated docs</span></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-card-head">
+            <span>Advanced usage</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><span class="kw">use</span> fuzzly::{<span class="ty">FuzzySearcher</span>, <span class="ty">LevenshteinWithOperations</span>};
+
+<span class="cm">// See exactly what edits are needed</span>
+<span class="kw">let</span> result = <span class="ty">LevenshteinWithOperations</span>::<span class="fn">compute</span>(<span class="st">"cat"</span>, <span class="st">"cart"</span>);
+println!(<span class="st">"{}"</span>, result);
+<span class="cm">// insert 'r'  — distance: 1  — similarity: 75%</span>
+
+<span class="cm">// Builder API for search configuration</span>
+<span class="kw">let</span> searcher = <span class="ty">FuzzySearcher</span>::<span class="fn">new</span>(<span class="nu">0.5</span>)
+    .<span class="fn">case_insensitive</span>(<span class="kw">true</span>)
+    .<span class="fn">max_results</span>(<span class="nu">5</span>);
+
+<span class="kw">let</span> best = searcher.<span class="fn">find_best</span>(<span class="st">"APLE"</span>, &amp;words);</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="wrap footer-inner">
+      <div class="footer-logo">🔍 <span>fuzz</span><span class="dot">ly</span></div>
+      <div class="footer-links">
+        <a href="https://github.com/Fanaperana/fuzzy-search-rs" target="_blank">GitHub</a>
+        <a href="https://en.wikipedia.org/wiki/Levenshtein_distance" target="_blank">Levenshtein Distance</a>
+        <a href="https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm" target="_blank">Wagner-Fischer</a>
+        <a href="https://github.com/bheisler/criterion.rs" target="_blank">Criterion.rs</a>
+      </div>
+      <div class="footer-right">MIT License · Built with ❤️ for learners</div>
+    </div>
+  </footer>
+
+  <!-- ── JavaScript ─────────────────────────────────────────────────────── -->
+  <script>
+    // ── Levenshtein (JS port) ────────────────────────────────────────────────
+    function levenshteinMatrix(source, target) {
+      const m = source.length,
+        n = target.length;
+      const matrix = Array.from({
+          length: m + 1
+        }, (_, i) =>
+        Array.from({
+          length: n + 1
+        }, (_, j) => ({
+          value: i === 0 ? j : j === 0 ? i : 0,
+          type: 'base',
+          onPath: false
+        }))
+      );
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          const match = source[i - 1].toLowerCase() === target[j - 1].toLowerCase();
+          const cost = match ? 0 : 1;
+          const del = matrix[i - 1][j].value + 1;
+          const ins = matrix[i][j - 1].value + 1;
+          const sub = matrix[i - 1][j - 1].value + cost;
+          const min = Math.min(del, ins, sub);
+          matrix[i][j].value = min;
+          if (min === sub && match) matrix[i][j].type = 'match';
+          else if (min === sub) matrix[i][j].type = 'substitute';
+          else if (min === ins) matrix[i][j].type = 'insert';
+          else matrix[i][j].type = 'delete';
+        }
+      }
+      // Backtrack
+      let i = m,
+        j = n;
+      while (i > 0 || j > 0) {
+        matrix[i][j].onPath = true;
+        if (i === 0) {
+          j--;
+          continue;
+        }
+        if (j === 0) {
+          i--;
+          continue;
+        }
+        const t = matrix[i][j].type;
+        if (t === 'match' || t === 'substitute') {
+          i--;
+          j--;
+        } else if (t === 'insert') {
+          j--;
+        } else {
+          i--;
+        }
+      }
+      matrix[0][0].onPath = true;
+      return {
+        matrix,
+        distance: m > 0 && n > 0 ? matrix[m][n].value : Math.max(m, n)
+      };
+    }
+
+    function similarity(a, b) {
+      const max = Math.max(a.length, b.length);
+      if (max === 0) return 1.0;
+      return 1.0 - levenshteinMatrix(a.toLowerCase(), b.toLowerCase()).distance / max;
+    }
+
+    function fuzzySearch(query, candidates, minScore = 0.1) {
+      if (!query.trim()) return [];
+      return candidates
+        .map(c => ({
+          text: c,
+          score: similarity(query, c)
+        }))
+        .filter(r => r.score >= minScore)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 7);
+    }
+
+    // ── Candidate lists ──────────────────────────────────────────────────────
+    const HERO_CANDIDATES = ['search', 'algorithm', 'levenshtein', 'function', 'iterator',
+      'string', 'trait', 'sorting', 'recursion', 'dynamic', 'programming', 'binary', 'pattern'
+    ];
+
+    const LIVE_CANDIDATES = ['vector', 'hashmap', 'option', 'result', 'iterator', 'closure',
+      'trait', 'lifetime', 'ownership', 'borrowing', 'reference', 'string', 'struct', 'enum',
+      'match', 'algorithm', 'dynamic', 'programming', 'search', 'pattern', 'recursion',
+      'sorting', 'binary', 'graph', 'tree', 'levenshtein', 'distance', 'similarity', 'fuzzy',
+      'approximate', 'threshold', 'candidate', 'query', 'index', 'function', 'variable',
+      'constant', 'module', 'package', 'compile', 'generic', 'lifetime', 'async', 'await'
+    ];
+
+    // ── Hero typing demo ─────────────────────────────────────────────────────
+    const DEMO_QUERIES = ['srch', 'algorythm', 'lveshtein', 'dynamc progrmming'];
+    let heroQueryIdx = 0;
+    let heroTimer = null;
+
+    function renderHeroResults(query) {
+      const el = document.getElementById('hero-results');
+      const results = fuzzySearch(query, HERO_CANDIDATES, 0.2);
+      if (!query || results.length === 0) {
+        el.innerHTML = '<span class="hero-empty">Type to see matches…</span>';
+        return;
+      }
+      el.innerHTML = results.map(r => {
+        const pct = Math.round(r.score * 100);
+        const color = pct >= 80 ? 'var(--green)' : pct >= 55 ? 'var(--amber)' : 'var(--blue)';
+        return `<div class="hero-result-item">
+      <span class="hero-result-name">${r.text}</span>
+      <span class="hero-result-right">
+        <span class="hero-result-score">${pct}%</span>
+        <span class="hero-result-bar-wrap"><span class="hero-result-bar" style="width:${pct}%;background:${color}"></span></span>
+      </span>
+    </div>`;
+      }).join('');
+    }
+
+    function typeHero(query, onDone) {
+      const input = document.getElementById('hero-input');
+      let i = 0;
+
+      function type() {
+        if (i <= query.length) {
+          input.value = query.slice(0, i);
+          renderHeroResults(input.value);
+          i++;
+          heroTimer = setTimeout(type, 130);
+        } else {
+          setTimeout(() => erase(query, onDone), 1800);
+        }
+      }
+      type();
+    }
+
+    function erase(query, onDone) {
+      const input = document.getElementById('hero-input');
+      let len = query.length;
+
+      function del() {
+        if (len >= 0) {
+          input.value = query.slice(0, len);
+          renderHeroResults(input.value);
+          len--;
+          heroTimer = setTimeout(del, 60);
+        } else {
+          onDone();
+        }
+      }
+      del();
+    }
+
+    function runHeroDemo() {
+      const query = DEMO_QUERIES[heroQueryIdx % DEMO_QUERIES.length];
+      heroQueryIdx++;
+      typeHero(query, () => {
+        heroTimer = setTimeout(runHeroDemo, 400);
+      });
+    }
+
+    // ── Live search demo ─────────────────────────────────────────────────────
+    function scoreClass(s) {
+      if (s >= 0.8) return 'score-excellent';
+      if (s >= 0.55) return 'score-good';
+      return 'score-fair';
+    }
+
+    function scoreColor(s) {
+      if (s >= 0.8) return 'var(--green)';
+      if (s >= 0.55) return 'var(--amber)';
+      return 'var(--blue)';
+    }
+
+    document.getElementById('live-input').addEventListener('input', function() {
+      const q = this.value;
+      const el = document.getElementById('live-results');
+      if (!q) {
+        el.innerHTML = '<p class="placeholder-hint">Start typing to see fuzzy matches in real time</p>';
+        return;
+      }
+      const results = fuzzySearch(q, LIVE_CANDIDATES, 0.25);
+      if (results.length === 0) {
+        el.innerHTML = '<p class="placeholder-hint">No matches above 25% similarity</p>';
+        return;
+      }
+      el.innerHTML = results.map(r => {
+        const pct = Math.round(r.score * 100);
+        const color = scoreColor(r.score);
+        return `<div class="live-result">
+      <span class="live-result-name">${r.text}</span>
+      <span class="live-result-meta">
+        <span class="live-score-pill ${scoreClass(r.score)}">${pct}%</span>
+        <span class="live-bar-wrap"><span class="live-bar" style="width:${pct}%;background:${color}"></span></span>
+      </span>
+    </div>`;
+      }).join('');
+    });
+
+    // ── DP Matrix Visualizer ─────────────────────────────────────────────────
+    let vizMatrix = null;
+    let vizSource = '';
+    let vizTarget = '';
+    let animFrame = null;
+
+    function buildMatrixHTML(matrix, source, target, hidden = false) {
+      const m = source.length,
+        n = target.length;
+      const cols = n + 2; // header col + "" col + n cols
+      let html = `<div class="dp-matrix" style="grid-template-columns:repeat(${cols},38px)">`;
+
+      // Top-left corner + "" + target chars
+      html += `<div class="dp-cell dp-header"></div>`;
+      html += `<div class="dp-cell dp-header" style="color:var(--text3)">""</div>`;
+      for (let j = 0; j < n; j++)
+        html += `<div class="dp-cell dp-header">${target[j]}</div>`;
+
+      for (let i = 0; i <= m; i++) {
+        // Row header
+        if (i === 0) html += `<div class="dp-cell dp-header" style="color:var(--text3)">""</div>`;
+        else html += `<div class="dp-cell dp-header">${source[i-1]}</div>`;
+
+        for (let j = 0; j <= n; j++) {
+          const cell = matrix[i][j];
+          let cls = 'dp-cell ';
+          if (i === 0 || j === 0) cls += 'dp-base';
+          else cls += `dp-${cell.type}`;
+          if (cell.onPath) cls += ' dp-path';
+          if (hidden && i > 0 && j > 0) cls += ' hidden';
+          html += `<div class="${cls}" data-i="${i}" data-j="${j}">${cell.value}</div>`;
+        }
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function showResult(distance, source, target) {
+      const max = Math.max(source.length, target.length);
+      const sim = max > 0 ? ((1 - distance / max) * 100).toFixed(1) : '100.0';
+      const el = document.getElementById('matrix-result');
+      el.style.display = 'block';
+      el.innerHTML = `
+    Edit distance between <span style="color:var(--accent)">"${source}"</span>
+    and <span style="color:var(--accent)">"${target}"</span>:
+    <span style="color:var(--green)">${distance}</span> edit${distance !== 1 ? 's' : ''}
+    &nbsp;·&nbsp; Similarity: <span style="color:var(--green)">${sim}%</span>
+  `;
+    }
+
+    function runVisualizer() {
+      clearAnimation();
+      vizSource = document.getElementById('viz-source').value.slice(0, 20);
+      vizTarget = document.getElementById('viz-target').value.slice(0, 20);
+      if (!vizSource || !vizTarget) return;
+      const {
+        matrix,
+        distance
+      } = levenshteinMatrix(vizSource, vizTarget);
+      vizMatrix = matrix;
+      document.getElementById('matrix-container').innerHTML = buildMatrixHTML(matrix, vizSource, vizTarget);
+      showResult(distance, vizSource, vizTarget);
+    }
+
+    function animateVisualizer() {
+      clearAnimation();
+      vizSource = document.getElementById('viz-source').value.slice(0, 20);
+      vizTarget = document.getElementById('viz-target').value.slice(0, 20);
+      if (!vizSource || !vizTarget) return;
+      const {
+        matrix,
+        distance
+      } = levenshteinMatrix(vizSource, vizTarget);
+      vizMatrix = matrix;
+      // Render with data cells hidden
+      document.getElementById('matrix-container').innerHTML = buildMatrixHTML(matrix, vizSource, vizTarget, true);
+      document.getElementById('matrix-result').style.display = 'none';
+
+      const cells = Array.from(document.querySelectorAll('.dp-cell[data-i]'))
+        .sort((a, b) => {
+          const [ai, aj] = [+a.dataset.i, +a.dataset.j];
+          const [bi, bj] = [+b.dataset.i, +b.dataset.j];
+          return ai !== bi ? ai - bi : aj - bj;
+        });
+
+      let idx = 0;
+      const speedSlider = document.getElementById('speed-slider');
+
+      function step() {
+        document.querySelectorAll('.dp-current').forEach(c => c.classList.remove('dp-current'));
+        if (idx >= cells.length) {
+          showResult(distance, vizSource, vizTarget);
+          return;
+        }
+        const cell = cells[idx];
+        cell.classList.remove('hidden');
+        cell.classList.add('dp-current');
+        idx++;
+        const delay = 310 - parseInt(speedSlider.value);
+        animFrame = setTimeout(step, Math.max(20, delay));
+      }
+      step();
+    }
+
+    function clearAnimation() {
+      if (animFrame) {
+        clearTimeout(animFrame);
+        animFrame = null;
+      }
+    }
+
+    function resetVisualizer() {
+      clearAnimation();
+      document.getElementById('matrix-container').innerHTML =
+        '<p style="color:var(--text3);font-size:.875rem;">Click <strong>Visualize</strong> to build the matrix, or <strong>Animate</strong> to watch it fill in step by step.</p>';
+      document.getElementById('matrix-result').style.display = 'none';
+    }
+
+    // Speed label
+    document.getElementById('speed-slider').addEventListener('input', function() {
+      const v = parseInt(this.value);
+      const label = document.getElementById('speed-label');
+      label.textContent = v <= 80 ? 'fast' : v <= 180 ? 'medium' : 'slow';
+    });
+
+    // ── Tabs ─────────────────────────────────────────────────────────────────
+    function showTab(name) {
+      document.querySelectorAll('.impl-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.impl-panel').forEach(p => p.classList.remove('active'));
+      const idx = ['compute', 'optimized', 'fast'].indexOf(name);
+      document.querySelectorAll('.impl-tab')[idx].classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    // ── Copy button ───────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-card').querySelector('pre');
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+
+    // ── Scroll reveal ─────────────────────────────────────────────────────────
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in-view');
+          observer.unobserve(e.target);
+        }
+      });
+    }, {
+      threshold: 0.1
+    });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    runHeroDemo();
+    // Pre-load the visualizer with the classic example
+    setTimeout(runVisualizer, 600);
+  </script>
+</body>
+
+</html>
