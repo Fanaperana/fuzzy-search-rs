@@ -106,7 +106,11 @@ fn main() {
     let searcher = FuzzySearcher::new(0.8).case_insensitive(true);
     let results = searcher.search("APPLE", &["apple", "Apple", "APPLE"]);
     for result in &results {
-        println!("  '{}' matches with {:.1}%", result.text, result.score * 100.0);
+        println!(
+            "  '{}' matches with {:.1}%",
+            result.text,
+            result.score * 100.0
+        );
     }
     println!();
 
@@ -115,7 +119,11 @@ fn main() {
     let searcher = FuzzySearcher::new(0.8).case_insensitive(false);
     let results = searcher.search("Apple", &["apple", "Apple", "APPLE"]);
     for result in &results {
-        println!("  '{}' matches with {:.1}%", result.text, result.score * 100.0);
+        println!(
+            "  '{}' matches with {:.1}%",
+            result.text,
+            result.score * 100.0
+        );
     }
     println!();
 
@@ -195,7 +203,10 @@ fn main() {
         let similarity = LevenshteinDistance::similarity(s1, s2);
         println!(
             "  '{}' → '{}': distance = {}, similarity = {:.1}%",
-            s1, s2, distance, similarity * 100.0
+            s1,
+            s2,
+            distance,
+            similarity * 100.0
         );
     }
 

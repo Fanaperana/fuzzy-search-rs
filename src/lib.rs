@@ -216,15 +216,15 @@ impl LevenshteinDistance {
         // ── STEP 1: Initialize the first column ──────────────────────────────
         // matrix[i][0] = i  means: turning source[0..i] into an empty string
         // costs exactly i operations (delete every character).
-        for i in 0..=m {
-            matrix[i][0] = i;
+        for (i, row) in matrix.iter_mut().enumerate().take(m + 1) {
+            row[0] = i;
         }
 
         // ── STEP 2: Initialize the first row ─────────────────────────────────
         // matrix[0][j] = j  means: turning an empty string into target[0..j]
         // costs exactly j operations (insert every character).
-        for j in 0..=n {
-            matrix[0][j] = j;
+        for (j, cell) in matrix[0].iter_mut().enumerate().take(n + 1) {
+            *cell = j;
         }
 
         // ── STEP 3: Fill in the rest of the matrix ───────────────────────────
@@ -717,11 +717,11 @@ impl LevenshteinWithOperations {
         // backwards through it in the backtracking phase below.
         let mut matrix = vec![vec![0usize; n + 1]; m + 1];
 
-        for i in 0..=m {
-            matrix[i][0] = i; // base case: delete all of source[0..i]
+        for (i, row) in matrix.iter_mut().enumerate().take(m + 1) {
+            row[0] = i; // base case: delete all of source[0..i]
         }
-        for j in 0..=n {
-            matrix[0][j] = j; // base case: insert all of target[0..j]
+        for (j, cell) in matrix[0].iter_mut().enumerate().take(n + 1) {
+            *cell = j; // base case: insert all of target[0..j]
         }
 
         for i in 1..=m {

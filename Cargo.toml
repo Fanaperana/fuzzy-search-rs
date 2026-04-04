@@ -6,7 +6,8 @@ authors = ["Fanaperana"]
 description = "A comprehensive, educational implementation of fuzzy search algorithms using Levenshtein distance"
 license = "MIT"
 repository = "https://github.com/Fanaperana/fuzzy-search-rs"
-documentation = "https://github.com/Fanaperana/fuzzy-search-rs#readme"
+homepage = "https://fanaperana.github.io/fuzzy-search-rs/"
+documentation = "https://fanaperana.github.io/fuzzy-search-rs/"
 readme = "README.md"
 keywords = [
     "fuzzy-search",

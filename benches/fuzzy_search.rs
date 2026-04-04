@@ -13,7 +13,9 @@
 //! Run:           cargo bench
 //! HTML reports:  target/criterion/<group>/report/index.html
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::hint::black_box;
+
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use fuzzly::LevenshteinDistance;
 
 // ── Test inputs ───────────────────────────────────────────────────────────────
@@ -24,11 +26,7 @@ use fuzzly::LevenshteinDistance;
 
 const INPUTS: &[(&str, &str, &str)] = &[
     // tiny: classic textbook example
-    (
-        "kitten",
-        "sitting",
-        "tiny (6 vs 7 chars)",
-    ),
+    ("kitten", "sitting", "tiny (6 vs 7 chars)"),
     // short: two plausible but distinct phrases
     (
         "fuzzy search algorithm",
@@ -108,9 +106,7 @@ fn bench_levenshtein_comparison(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("3_compute_fast", label),
             &(src, tgt),
-            |b, (s, t)| {
-                b.iter(|| LevenshteinDistance::compute_fast(black_box(s), black_box(t)))
-            },
+            |b, (s, t)| b.iter(|| LevenshteinDistance::compute_fast(black_box(s), black_box(t))),
         );
     }
 

@@ -15,9 +15,49 @@
 
 > ⭐ **If fuzzly helped you learn**, please [leave a star on GitHub](https://github.com/Fanaperana/fuzzy-search-rs)! It helps others discover the project and keeps the motivation going.
 
-A **comprehensive, educational implementation** of fuzzy search algorithms in Rust. This repository is designed to help developers understand and implement fuzzy search in any programming language.
+A **comprehensive, educational implementation** of fuzzy search algorithms in Rust with an interactive Levenshtein visualizer, benchmarked implementations, and heavily annotated source code.
 
 Quick links: [Docs site](https://fanaperana.github.io/fuzzy-search-rs/) · [First release](https://github.com/Fanaperana/fuzzy-search-rs/releases/tag/v0.1.0) · [Discussions](https://github.com/Fanaperana/fuzzy-search-rs/discussions)
+
+## Why fuzzly?
+
+- Learn fuzzy search from a real, readable Rust implementation
+- Compare `compute`, `compute_optimized`, and `compute_fast` side-by-side
+- Explore an interactive docs site instead of reading source alone
+- Use it as a reference for typo-tolerant search, ranking, and edit distance
+
+## Quick Start
+
+Add fuzzly directly from GitHub today:
+
+```toml
+[dependencies]
+fuzzly = { git = "https://github.com/Fanaperana/fuzzy-search-rs" }
+```
+
+Minimal example:
+
+```rust
+use fuzzly::{FuzzySearcher, LevenshteinDistance};
+
+fn main() {
+    let distance = LevenshteinDistance::compute("kitten", "sitting");
+    println!("distance: {distance}");
+
+    let searcher = FuzzySearcher::new(0.6);
+    let results = searcher.search("aple", &["apple", "application", "banana"]);
+
+    for result in results {
+        println!("{}: {:.0}%", result.text, result.score * 100.0);
+    }
+}
+```
+
+Best entry points:
+
+- Read the live docs: [fanaperana.github.io/fuzzy-search-rs](https://fanaperana.github.io/fuzzy-search-rs/)
+- Browse the release: [v0.1.0](https://github.com/Fanaperana/fuzzy-search-rs/releases/tag/v0.1.0)
+- Join the conversation: [GitHub Discussions](https://github.com/Fanaperana/fuzzy-search-rs/discussions)
 
 ## 🎯 What is Fuzzy Search?
 
