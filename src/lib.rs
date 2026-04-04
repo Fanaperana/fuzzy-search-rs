@@ -4,6 +4,48 @@
 //! This library provides tools for approximate string matching using the
 //! Levenshtein distance algorithm.
 //!
+//! ---
+//!
+//! ## What is fuzzy search?
+//!
+//! A normal search requires an **exact** match: searching for `"aple"` in a list
+//! won't find `"apple"`.  Fuzzy search relaxes that requirement — it finds strings
+//! that are *close enough*, even when they contain typos or small differences.
+//!
+//! The key idea is to measure how many **edits** (insert / delete / substitute a
+//! single character) it takes to turn one string into another.  Fewer edits means
+//! a better match.
+//!
+//! ---
+//!
+//! ## Learning path — where to start
+//!
+//! If you are new to this topic, read the types in this order:
+//!
+//! 1. **[`LevenshteinDistance::compute`]** — the classic full-matrix
+//!    Wagner-Fischer algorithm.  Every cell, every loop, every step is annotated.
+//!    Start here to understand the core idea.
+//!
+//! 2. **[`LevenshteinDistance::compute_optimized`]** — keeps only two rows of the
+//!    matrix at once.  A natural next step once you have grasped the full version.
+//!
+//! 3. **[`LevenshteinDistance::similarity`]** — converts the raw distance into a
+//!    0.0–1.0 score humans can reason about.
+//!
+//! 4. **[`LevenshteinWithOperations`]** — builds the full list of edits by
+//!    *backtracking* through the completed matrix.  Great for visualising what the
+//!    algorithm actually does.
+//!
+//! 5. **[`FuzzySearcher`]** — the high-level search interface that brings
+//!    everything together and adds practical features like case-insensitivity and
+//!    result ranking.
+//!
+//! 6. **[`LevenshteinDistance::compute_fast`]** — the performance-tuned variant
+//!    with an ASCII byte path and smaller DP cells.  Read this last, once you
+//!    understand what it is optimising.
+//!
+//! ---
+//!
 //! ## Quick Start
 //!
 //! ```rust
@@ -23,6 +65,8 @@
 //! let results = searcher.search("aple", &candidates);
 //! ```
 //!
+//! ---
+//!
 //! ## Algorithm Overview
 //!
 //! The Levenshtein distance between two strings is the minimum number of
@@ -37,20 +81,36 @@ use std::fmt;
 
 // ============================================================================
 // LEVENSHTEIN DISTANCE - Core Algorithm Implementation
+//
+// If you are reading this for the first time, focus on `compute` first.
+// It uses a full 2-D matrix so that every value is visible and easy to trace.
+// The later methods (`compute_optimized`, `compute_fast`) produce identical
+// results using less memory or fewer CPU cycles, but are harder to follow
+// before you understand the basics.
 // ============================================================================
 
 /// Core implementation of the Levenshtein distance algorithm.
 ///
-/// The Levenshtein distance (also known as edit distance) measures the minimum
-/// number of single-character edits needed to transform one string into another.
+/// The Levenshtein distance (also known as **edit distance**) is the minimum
+/// number of single-character edits needed to turn one string into another.
+/// Think of it as the "cost" of fixing a typo.
 ///
-/// ## Operations
+/// ## The three operations
 ///
 /// | Operation    | Description           | Example                    |
 /// |--------------|-----------------------|----------------------------|
 /// | Insert       | Add a character       | `cat` → `cart` (insert r)  |
 /// | Delete       | Remove a character    | `cart` → `cat` (delete r)  |
 /// | Substitute   | Replace a character   | `cat` → `bat` (sub c → b)  |
+///
+/// ## Methods at a glance
+///
+/// | Method | Best for |
+/// |--------|----------|
+/// | [`compute`](Self::compute) | Learning — shows the full matrix |
+/// | [`compute_optimized`](Self::compute_optimized) | Long strings — saves memory |
+/// | [`compute_fast`](Self::compute_fast) | Production — fastest path |
+/// | [`similarity`](Self::similarity) | Human-readable 0.0–1.0 score |
 ///
 /// ## Example
 ///
@@ -119,14 +179,20 @@ impl LevenshteinDistance {
     /// assert_eq!(LevenshteinDistance::compute("kitten", "sitting"), 3);
     /// ```
     pub fn compute(source: &str, target: &str) -> usize {
+        // Collect characters so we can index into them by position.
+        // Rust strings are UTF-8 and cannot be indexed directly by integer,
+        // so we build a Vec<char> first.  This is the clearest approach for
+        // learning purposes (compute_fast avoids this allocation for ASCII).
         let source_chars: Vec<char> = source.chars().collect();
         let target_chars: Vec<char> = target.chars().collect();
 
-        let m = source_chars.len();
-        let n = target_chars.len();
+        let m = source_chars.len(); // number of characters in source
+        let n = target_chars.len(); // number of characters in target
 
-        // Handle edge cases: if one string is empty,
-        // distance equals the length of the other
+        // ── Edge cases ───────────────────────────────────────────────────────
+        // If one string is empty, the only way to transform it into the other
+        // is to insert (or delete) every character — so the distance equals
+        // the other string's length.
         if m == 0 {
             return n;
         }
@@ -134,49 +200,89 @@ impl LevenshteinDistance {
             return m;
         }
 
-        // Create the distance matrix of size (m+1) x (n+1)
-        // matrix[i][j] represents the edit distance between
-        // source[0..i] and target[0..j]
+        // ── Build the DP matrix ──────────────────────────────────────────────
+        //
+        // We create a 2-D grid of size (m+1) × (n+1).
+        //
+        // What does matrix[i][j] mean?
+        //   The minimum number of edits to transform source[0..i] into target[0..j].
+        //   In other words, the sub-problem answer for the first i chars of source
+        //   and the first j chars of target.
+        //
+        // The +1 in each dimension makes room for the "empty prefix" case (i=0 or j=0),
+        // which is our base case.
         let mut matrix = vec![vec![0usize; n + 1]; m + 1];
 
-        // STEP 1: Initialize first column
-        // Transforming source[0..i] to empty string requires i deletions
+        // ── STEP 1: Initialize the first column ──────────────────────────────
+        // matrix[i][0] = i  means: turning source[0..i] into an empty string
+        // costs exactly i operations (delete every character).
         for i in 0..=m {
             matrix[i][0] = i;
         }
 
-        // STEP 2: Initialize first row
-        // Transforming empty string to target[0..j] requires j insertions
+        // ── STEP 2: Initialize the first row ─────────────────────────────────
+        // matrix[0][j] = j  means: turning an empty string into target[0..j]
+        // costs exactly j operations (insert every character).
         for j in 0..=n {
             matrix[0][j] = j;
         }
 
-        // STEP 3: Fill in the matrix using dynamic programming
+        // ── STEP 3: Fill in the rest of the matrix ───────────────────────────
+        //
+        // For each (i, j) we ask: what is the cheapest way to turn
+        // source[0..i] into target[0..j]?
+        //
+        // There are three choices, and we take the cheapest:
+        //
+        //   Deletion:     remove source[i-1].  Cost = matrix[i-1][j] + 1
+        //                 (solve the sub-problem without source[i-1], then delete it)
+        //
+        //   Insertion:    insert target[j-1] at the end of source[0..i].
+        //                 Cost = matrix[i][j-1] + 1
+        //                 (solve the sub-problem without target[j-1], then insert it)
+        //
+        //   Substitution: if source[i-1] == target[j-1] the characters already match
+        //                 and cost is 0; otherwise replace one with the other, cost 1.
+        //                 Either way: matrix[i-1][j-1] + cost
+        //                 (solve the sub-problem for both prefixes shortened by one)
         for i in 1..=m {
             for j in 1..=n {
-                // Cost is 0 if characters match, 1 if substitution needed
+                // cost = 0: characters already match, no substitution needed.
+                // cost = 1: characters differ, a substitution is required.
                 let cost = if source_chars[i - 1] == target_chars[j - 1] {
                     0
                 } else {
                     1
                 };
 
-                // Take the minimum of three possible operations:
-                let deletion = matrix[i - 1][j] + 1; // Delete from source
-                let insertion = matrix[i][j - 1] + 1; // Insert into source
-                let substitution = matrix[i - 1][j - 1] + cost; // Substitute (or match)
+                let deletion = matrix[i - 1][j] + 1; // remove source[i-1]
+                let insertion = matrix[i][j - 1] + 1; // insert target[j-1]
+                let substitution = matrix[i - 1][j - 1] + cost; // replace/match
 
                 matrix[i][j] = min(deletion, min(insertion, substitution));
             }
         }
 
-        // STEP 4: Result is in the bottom-right cell
+        // ── STEP 4: Read the answer ───────────────────────────────────────────
+        // The bottom-right cell holds the edit distance for the full strings.
         matrix[m][n]
     }
 
-    /// Memory-optimized version using only two rows.
+    /// Memory-optimized version using only two rows instead of the full matrix.
     ///
-    /// This version uses O(min(m,n)) space instead of O(m × n).
+    /// **Key insight:** look at the recurrence in [`compute`](Self::compute).
+    /// Each cell `matrix[i][j]` only ever reads from the row *directly above*
+    /// (`matrix[i-1][...]`) — it never looks further back.  That means once
+    /// we finish row `i` we will never need rows `0..i-1` again.
+    ///
+    /// So instead of keeping the whole matrix in memory, we keep only two rows:
+    /// - `previous_row` — the completed row above (what `compute` calls row `i-1`)
+    /// - `current_row`  — the row we are currently filling (row `i`)
+    ///
+    /// After filling `current_row` we swap the two pointers and move to the next row.
+    /// Memory usage drops from O(m × n) to O(min(m, n)).
+    ///
+    /// The results are **identical** to [`compute`](Self::compute).
     /// Useful for comparing very long strings.
     ///
     /// ## Algorithm (Pseudo Code)
@@ -233,20 +339,22 @@ impl LevenshteinDistance {
             return m;
         }
 
-        // Optimization: Use shorter string for columns to minimize memory
+        // Minor trick: put the *shorter* string in the column dimension so both
+        // rows are as small as possible.  The distance is symmetric, so this is safe.
         let (source_chars, target_chars, m, n) = if m < n {
             (target_chars, source_chars, n, m)
         } else {
             (source_chars, target_chars, m, n)
         };
 
-        // Only need two rows instead of full matrix
+        // previous_row starts as [0, 1, 2, ..., n], which is the same as the
+        // first row of the full matrix: transforming "" into target[0..j] costs j.
         let mut previous_row: Vec<usize> = (0..=n).collect();
         let mut current_row: Vec<usize> = vec![0; n + 1];
 
-        // Process each character of source
         for i in 1..=m {
-            // First cell of current row = number of deletions needed
+            // The leftmost cell of each row is i: transforming source[0..i] into ""
+            // costs i deletions.
             current_row[0] = i;
 
             for j in 1..=n {
@@ -257,31 +365,44 @@ impl LevenshteinDistance {
                 };
 
                 current_row[j] = min(
-                    current_row[j - 1] + 1,     // Insertion
+                    current_row[j - 1] + 1, // Insertion  (came from left in same row)
                     min(
-                        previous_row[j] + 1,     // Deletion
-                        previous_row[j - 1] + cost, // Substitution
+                        previous_row[j] + 1,        // Deletion   (came from above)
+                        previous_row[j - 1] + cost, // Substitution/match (came from diagonal)
                     ),
                 );
             }
 
-            // Swap rows for next iteration
+            // This row is complete.  Make it the "previous" row and reuse
+            // the old previous_row buffer as the next current_row.
             std::mem::swap(&mut previous_row, &mut current_row);
         }
 
-        // Result is in previous_row after the swap
+        // After the final swap, the answer sits in previous_row[n].
         previous_row[n]
     }
 
-    /// Computes the similarity score between two strings.
+    /// Converts an edit distance into a human-readable similarity score.
     ///
-    /// Returns a value between 0.0 (completely different) and 1.0 (identical).
+    /// Returns a value between `0.0` (completely different) and `1.0` (identical).
+    ///
+    /// ## Why this formula?
+    ///
+    /// Raw edit distance is hard to reason about without knowing string lengths.
+    /// The distance between `"a"` and `"b"` is 1, and so is the distance between
+    /// `"abcdef"` and `"abcdeg"` — but the second pair is far more similar.
+    ///
+    /// Dividing distance by the maximum possible distance (= `max_length`, i.e.
+    /// rewriting every character) normalises it to the 0–1 range, then we flip
+    /// it so that 1.0 means identical and 0.0 means completely different.
     ///
     /// ## Formula
     ///
     /// ```text
     /// similarity = 1.0 - (distance / max_length)
     /// ```
+    ///
+    /// A score ≥ 0.8 is generally considered a good match for typo correction.
     ///
     /// ## Example
     ///
@@ -304,7 +425,7 @@ impl LevenshteinDistance {
             return 1.0;
         }
 
-        let distance = Self::compute_optimized(source, target);
+        let distance = Self::compute_fast(source, target);
 
         // Convert distance to similarity score
         1.0 - (distance as f64 / max_len as f64)
@@ -323,10 +444,130 @@ impl LevenshteinDistance {
     pub fn similarity_ignore_case(source: &str, target: &str) -> f64 {
         Self::similarity(&source.to_lowercase(), &target.to_lowercase())
     }
+
+    /// Production-ready distance calculation — same result as [`compute`](Self::compute)
+    /// but faster, used internally by [`similarity`](Self::similarity) and
+    /// [`FuzzySearcher::search`].
+    ///
+    /// This method selects the best implementation automatically:
+    ///
+    /// - **ASCII strings** → [`fast_bytes`](Self::fast_bytes): works on raw bytes,
+    ///   skipping the `Vec<char>` allocation entirely.
+    /// - **Unicode strings** → [`fast_chars`](Self::fast_chars): falls back to
+    ///   collecting chars, same as the other methods, but with `u32` cells.
+    ///
+    /// Both paths use `u32` (4 bytes) per DP cell instead of `usize` (8 bytes on
+    /// 64-bit), so the two rolling rows fit into half the cache space, which matters
+    /// when the strings are long.
+    ///
+    /// **Why read this last?** Understanding `compute` and `compute_optimized` first
+    /// makes the optimisations here much easier to appreciate.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// use fzfrs::LevenshteinDistance;
+    ///
+    /// assert_eq!(LevenshteinDistance::compute_fast("kitten", "sitting"), 3);
+    /// assert_eq!(LevenshteinDistance::compute_fast("", "abc"), 3);
+    /// ```
+    pub fn compute_fast(source: &str, target: &str) -> usize {
+        if source.is_ascii() && target.is_ascii() {
+            // ASCII guarantee: every character is exactly one byte, so a byte index
+            // is the same as a character index.  We can skip Vec<char> entirely.
+            Self::fast_bytes(source.as_bytes(), target.as_bytes())
+        } else {
+            // Non-ASCII (emoji, accented letters, CJK, …): fall back to char slices.
+            let src: Vec<char> = source.chars().collect();
+            let tgt: Vec<char> = target.chars().collect();
+            Self::fast_chars(&src, &tgt)
+        }
+    }
+
+    // ── fast_bytes ────────────────────────────────────────────────────────────
+    // Two-row DP over raw byte slices — the ASCII-only fast path.
+    //
+    // Optimisation 1 – no Vec<char> allocation:
+    //   ASCII characters are all in the range 0x00–0x7F and each fits in exactly
+    //   one byte.  `str::as_bytes()` gives us a &[u8] with no heap allocation.
+    //
+    // Optimisation 2 – u32 cells (4 bytes) instead of usize (8 bytes on 64-bit):
+    //   A string would have to be > 4 billion characters long to overflow u32.
+    //   Using u32 means the two rolling rows take half as much memory, which
+    //   keeps them in CPU cache longer and improves throughput on medium/long strings.
+    fn fast_bytes(src: &[u8], tgt: &[u8]) -> usize {
+        let m = src.len();
+        let n = tgt.len();
+        if m == 0 {
+            return n;
+        }
+        if n == 0 {
+            return m;
+        }
+        // Keep the shorter sequence in the column dimension (smaller row allocation).
+        let (src, tgt) = if m < n { (tgt, src) } else { (src, tgt) };
+        let (m, n) = (src.len(), tgt.len());
+
+        let mut prev: Vec<u32> = (0..=(n as u32)).collect(); // base row: [0, 1, 2, …, n]
+        let mut curr: Vec<u32> = vec![0u32; n + 1]; // scratch buffer, reused each row
+
+        for i in 1..=m {
+            curr[0] = i as u32; // cost of deleting all of src[0..i]
+            let s = src[i - 1]; // current source byte, hoisted out of the inner loop
+            for j in 1..=n {
+                // u32::from(bool) gives 0 when characters match, 1 when they differ.
+                let cost = u32::from(s != tgt[j - 1]);
+                curr[j] = (curr[j - 1] + 1) // insertion
+                    .min(prev[j] + 1) // deletion
+                    .min(prev[j - 1] + cost); // substitution / match
+            }
+            std::mem::swap(&mut prev, &mut curr); // roll forward
+        }
+        prev[n] as usize
+    }
+
+    // ── fast_chars ────────────────────────────────────────────────────────────
+    // Identical logic to fast_bytes but operates on char slices instead of byte
+    // slices.  Used when at least one string contains non-ASCII characters.
+    fn fast_chars(src: &[char], tgt: &[char]) -> usize {
+        let m = src.len();
+        let n = tgt.len();
+        if m == 0 {
+            return n;
+        }
+        if n == 0 {
+            return m;
+        }
+        let (src, tgt) = if m < n { (tgt, src) } else { (src, tgt) };
+        let (m, n) = (src.len(), tgt.len());
+
+        let mut prev: Vec<u32> = (0..=(n as u32)).collect();
+        let mut curr: Vec<u32> = vec![0u32; n + 1];
+
+        for i in 1..=m {
+            curr[0] = i as u32;
+            let s = src[i - 1];
+            for j in 1..=n {
+                let cost = u32::from(s != tgt[j - 1]);
+                curr[j] = (curr[j - 1] + 1) // insertion
+                    .min(prev[j] + 1) // deletion
+                    .min(prev[j - 1] + cost); // substitution / match
+            }
+            std::mem::swap(&mut prev, &mut curr);
+        }
+        prev[n] as usize
+    }
 }
 
 // ============================================================================
 // EDIT OPERATIONS - Tracking what changes are needed
+//
+// The methods above tell you *how many* edits are needed.
+// This section tells you *which* edits: insert 'r', delete 'k', etc.
+//
+// The trick is backtracking: after building the full DP matrix we start at the
+// bottom-right corner and work backwards, choosing at each step the operation
+// that produced the current cell's value.
 // ============================================================================
 
 /// Represents a single edit operation.
@@ -385,7 +626,12 @@ impl fmt::Display for EditResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Comparison: '{}' → '{}'", self.source, self.target)?;
         writeln!(f, "Distance: {} operations", self.distance)?;
-        writeln!(f, "Similarity: {:.1}% ({})", self.similarity * 100.0, self.quality())?;
+        writeln!(
+            f,
+            "Similarity: {:.1}% ({})",
+            self.similarity * 100.0,
+            self.quality()
+        )?;
         if !self.operations.is_empty() {
             writeln!(f, "Operations:")?;
             for (i, op) in self.operations.iter().enumerate() {
@@ -396,7 +642,17 @@ impl fmt::Display for EditResult {
     }
 }
 
-/// Extended Levenshtein operations that also track the edit path.
+/// Extended Levenshtein that records the exact sequence of edits.
+///
+/// Under the hood this works in two phases:
+///
+/// 1. **Forward pass** — build the same DP matrix as [`LevenshteinDistance::compute`].
+/// 2. **Backtracking pass** — start at `matrix[m][n]` and walk backwards,
+///    at each step choosing the neighbour cell whose value explains the current
+///    cell (deletion came from above, insertion from the left, substitution from
+///    the diagonal).  The path we walk defines the edit script.
+///
+/// This is great for understanding *why* two strings got the score they did.
 pub struct LevenshteinWithOperations;
 
 impl LevenshteinWithOperations {
@@ -436,7 +692,10 @@ impl LevenshteinWithOperations {
                 target: target.to_string(),
                 distance: n,
                 similarity: 0.0,
-                operations: target_chars.iter().map(|&c| EditOperation::Insert(c)).collect(),
+                operations: target_chars
+                    .iter()
+                    .map(|&c| EditOperation::Insert(c))
+                    .collect(),
             };
         }
 
@@ -446,36 +705,41 @@ impl LevenshteinWithOperations {
                 target: target.to_string(),
                 distance: m,
                 similarity: 0.0,
-                operations: source_chars.iter().map(|&c| EditOperation::Delete(c)).collect(),
+                operations: source_chars
+                    .iter()
+                    .map(|&c| EditOperation::Delete(c))
+                    .collect(),
             };
         }
 
-        // Build the distance matrix
+        // Phase 1: build the full DP matrix (same as LevenshteinDistance::compute).
+        // We need the entire matrix (not just two rows) because we will walk
+        // backwards through it in the backtracking phase below.
         let mut matrix = vec![vec![0usize; n + 1]; m + 1];
 
         for i in 0..=m {
-            matrix[i][0] = i;
+            matrix[i][0] = i; // base case: delete all of source[0..i]
         }
         for j in 0..=n {
-            matrix[0][j] = j;
+            matrix[0][j] = j; // base case: insert all of target[0..j]
         }
 
         for i in 1..=m {
             for j in 1..=n {
                 let cost = if source_chars[i - 1] == target_chars[j - 1] {
-                    0
+                    0 // characters match — no substitution cost
                 } else {
-                    1
+                    1 // characters differ — substitution costs 1
                 };
 
                 matrix[i][j] = min(
-                    matrix[i - 1][j] + 1,
-                    min(matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost),
+                    matrix[i - 1][j] + 1,                                   // deletion
+                    min(matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost), // insertion / sub
                 );
             }
         }
 
-        // Backtrack to find the operations
+        // Phase 2: backtrack through the completed matrix to recover the edit path.
         let operations = Self::backtrack(&matrix, &source_chars, &target_chars);
 
         let distance = matrix[m][n];
@@ -491,24 +755,39 @@ impl LevenshteinWithOperations {
         }
     }
 
-    /// Backtracks through the matrix to find the sequence of operations.
+    // Backtracks through the completed DP matrix to reconstruct the edit script.
+    //
+    // How backtracking works
+    // ──────────────────────
+    // We filled matrix[i][j] by choosing the cheapest of three neighbours:
+    //
+    //   matrix[i-1][j]   + 1   → we deleted source[i-1]       (came from above)
+    //   matrix[i][j-1]   + 1   → we inserted target[j-1]      (came from left)
+    //   matrix[i-1][j-1] + c   → we substituted (or matched)   (came from diagonal)
+    //
+    // To recover the path we start at the bottom-right corner (i=m, j=n)
+    // and ask "which neighbour produced this cell's value?"  That tells us
+    // which operation was chosen.  We move to that neighbour and repeat,
+    // collecting operations in reverse order until we reach (0, 0).
     fn backtrack(
         matrix: &[Vec<usize>],
         source_chars: &[char],
         target_chars: &[char],
     ) -> Vec<EditOperation> {
         let mut operations = Vec::new();
-        let mut i = source_chars.len();
+        let mut i = source_chars.len(); // start at bottom-right
         let mut j = target_chars.len();
 
         while i > 0 || j > 0 {
             if i > 0 && j > 0 && source_chars[i - 1] == target_chars[j - 1] {
-                // Characters match - no operation needed (keep)
+                // Characters match → came from the diagonal at no cost.
+                // We record a Keep so callers can see the full alignment if they want.
                 operations.push(EditOperation::Keep(source_chars[i - 1]));
                 i -= 1;
                 j -= 1;
             } else if i > 0 && j > 0 && matrix[i][j] == matrix[i - 1][j - 1] + 1 {
-                // Substitution
+                // Substitution: the diagonal cell + 1 produced this cell.
+                // source[i-1] was replaced with target[j-1].
                 operations.push(EditOperation::Substitute {
                     from: source_chars[i - 1],
                     to: target_chars[j - 1],
@@ -516,23 +795,25 @@ impl LevenshteinWithOperations {
                 i -= 1;
                 j -= 1;
             } else if j > 0 && matrix[i][j] == matrix[i][j - 1] + 1 {
-                // Insertion
+                // Insertion: the left cell + 1 produced this cell.
+                // target[j-1] was inserted into source.
                 operations.push(EditOperation::Insert(target_chars[j - 1]));
                 j -= 1;
             } else if i > 0 && matrix[i][j] == matrix[i - 1][j] + 1 {
-                // Deletion
+                // Deletion: the cell above + 1 produced this cell.
+                // source[i-1] was deleted.
                 operations.push(EditOperation::Delete(source_chars[i - 1]));
                 i -= 1;
             } else {
-                // This shouldn't happen with a valid matrix
+                // Guard: should not be reached with a valid matrix.
                 break;
             }
         }
 
-        // Reverse since we backtracked from the end
+        // We collected operations back-to-front; reverse to get source → target order.
         operations.reverse();
 
-        // Filter out Keep operations for cleaner output
+        // Remove Keep entries for a concise output (only actual edits are shown).
         operations
             .into_iter()
             .filter(|op| !matches!(op, EditOperation::Keep(_)))
@@ -542,9 +823,13 @@ impl LevenshteinWithOperations {
 
 // ============================================================================
 // FUZZY SEARCHER - High-level search interface
+//
+// Everything above is low-level machinery.  FuzzySearcher wraps it into a
+// practical API: compare a query against a list of candidates, filter out
+// poor matches, sort by quality, and optionally cap the result count.
 // ============================================================================
 
-/// A match result from fuzzy searching.
+/// A single result returned by [`FuzzySearcher::search`].
 #[derive(Debug, Clone)]
 pub struct MatchResult {
     /// The matched text
@@ -568,14 +853,33 @@ impl MatchResult {
     }
 }
 
-/// Configuration for the fuzzy searcher.
+/// High-level fuzzy search engine.
+///
+/// Compares a query string against a list of candidates using
+/// [`LevenshteinDistance::similarity`] and returns matches that score above a
+/// configurable threshold, sorted best-first.
+///
+/// ## Choosing a threshold
+///
+/// | Threshold | Meaning |
+/// |-----------|--------|
+/// | `1.0` | Exact matches only |
+/// | `0.8` | Allows ~1 typo in a 5-character word |
+/// | `0.6` | Loose matching — good default for autocomplete |
+/// | `0.3` | Very loose — catches heavily misspelled words |
+///
+/// Builder methods ([`case_insensitive`](Self::case_insensitive),
+/// [`max_results`](Self::max_results)) use the **method-chaining** pattern:
+/// each call returns `Self` so you can chain configuration on one line.
 #[derive(Debug, Clone)]
 pub struct FuzzySearcher {
-    /// Minimum similarity threshold (0.0 to 1.0)
+    /// Minimum similarity threshold (0.0 to 1.0).
+    /// Candidates below this score are excluded from results.
     threshold: f64,
-    /// Whether to ignore case when comparing
+    /// When `true`, both query and candidate are lowercased before comparison,
+    /// so `"Apple"` and `"apple"` score 1.0.
     case_insensitive: bool,
-    /// Maximum number of results to return (None = unlimited)
+    /// Cap on the number of results returned.  `None` means unlimited.
     max_results: Option<usize>,
 }
 
@@ -691,7 +995,38 @@ impl FuzzySearcher {
                     candidate_str.to_string()
                 };
 
-                let score = LevenshteinDistance::similarity(&query_normalized, &candidate_normalized);
+                // ── Early-exit optimisation ───────────────────────────────
+                //
+                // The edit distance between two strings is *at least* the
+                // absolute difference of their lengths.  Why?  Even if every
+                // character in the shorter string matches a character in the
+                // longer one perfectly, you still need at least |len_a - len_b|
+                // insertions or deletions to handle the extra characters.
+                //
+                // Therefore the best possible similarity score is:
+                //   1.0 - |len_a - len_b| / max(len_a, len_b)
+                //
+                // If even this *best-case* score is below our threshold, we
+                // can skip the DP entirely — no amount of shared characters
+                // can save this candidate.
+                //
+                // This is only exact for ASCII (where byte length == char length).
+                // For non-ASCII we skip the check rather than risk a false negative.
+                if query_normalized.is_ascii() && candidate_normalized.is_ascii() {
+                    let qlen = query_normalized.len();
+                    let clen = candidate_normalized.len();
+                    let max_len = qlen.max(clen);
+                    if max_len > 0 {
+                        let len_diff = qlen.abs_diff(clen);
+                        let max_similarity = 1.0 - (len_diff as f64 / max_len as f64);
+                        if max_similarity < self.threshold {
+                            return None; // cannot possibly meet the threshold
+                        }
+                    }
+                }
+
+                let score =
+                    LevenshteinDistance::similarity(&query_normalized, &candidate_normalized);
 
                 if score >= self.threshold {
                     Some(MatchResult {
@@ -706,7 +1041,11 @@ impl FuzzySearcher {
             .collect();
 
         // Sort by score descending (best matches first)
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // Apply max_results limit if set
         if let Some(limit) = self.max_results {
@@ -819,7 +1158,7 @@ mod tests {
         assert_eq!(LevenshteinDistance::similarity("abc", "abc"), 1.0);
         assert_eq!(LevenshteinDistance::similarity("", ""), 1.0);
         assert_eq!(LevenshteinDistance::similarity("abc", "xyz"), 0.0);
-        
+
         let sim = LevenshteinDistance::similarity("kitten", "sitting");
         assert!((sim - 0.571).abs() < 0.01);
     }
