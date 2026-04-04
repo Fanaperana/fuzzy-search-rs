@@ -8,12 +8,23 @@ license = "MIT"
 repository = "https://github.com/yourusername/fzfrs"
 documentation = "https://github.com/yourusername/fzfrs#readme"
 readme = "README.md"
-keywords = ["fuzzy-search", "levenshtein", "edit-distance", "string-matching", "algorithm"]
+keywords = [
+    "fuzzy-search",
+    "levenshtein",
+    "edit-distance",
+    "string-matching",
+    "algorithm",
+]
 categories = ["algorithms", "text-processing"]
 
 [dependencies]
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "fuzzy_search"
+harness = false
 
 [lib]
 name = "fzfrs"
